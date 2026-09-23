@@ -79,8 +79,8 @@ MF.Hook.after(Scene_Map.prototype, "start", function() {
 
 ## Documentation
 
-- [Getting started](docs/getting-started.html)
-- [API reference](docs/index.html)
+- [Getting started](https://mesafer.github.io/MF_Core/getting-started.html)
+- [API reference](https://mesafer.github.io/MF_Core/)
 - [Changelog](docs/CHANGELOG.md)
 
 ## Versioning
