@@ -63,6 +63,17 @@ _Nothing yet._
 
 ---
 
+## [1.1.0] — 2026-09-23
+
+### Added
+- `MF.Units` expressions: functions `min`, `max`, `abs`, `sign`, `floor`, `ceil`, `round(v, digits?)`, `trunc`, `sqrt`, `pow`, `exp`, `log`, `mod`, `clamp`, `lerp`, `step`, `between`, `if`, `hypot`, `dist`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2` (radians), `sind`, `cosd`, `tand`, `atan2d`, `angle(x1, y1, x2, y2)`, `deg`, `rad` (degrees); constants `pi`, `PI`, `e`, `true`, `false`; operators `^` (power), `< > <= >= == !=`, `&& || !` (result 1 / 0), `cond ? a : b`. Still without `eval`; `if` / `? :` evaluate only the chosen branch.
+- `MF.Units.FUNCTIONS`, `MF.Units.CONSTANTS` (name lists), `MF.Units.arity(name)`.
+
+### Changed
+- `MF.Units` error messages name the unexpected symbol, unknown functions / names and wrong argument counts. Expressions valid in 1.0.0 give the same results.
+
+---
+
 ## [1.0.0] — 2026-09-23
 
 Initial release.

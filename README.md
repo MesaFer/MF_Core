@@ -4,7 +4,7 @@ Base library for the **MF_\*** plugin family for **RPG Maker MZ**.
 
 MF_Core provides a shared foundation — plugin registration with version checks, safe hooks, events, data files, save/config storage, localization, text codes, input, tweens, layout and more — so that MF_* plugins stay small and compatible with each other.
 
-- **Version:** 1.0.0
+- **Version:** 1.1.0
 - **Engine:** RPG Maker MZ
 - **Author:** MesaFer
 - **itch.io:** https://mesafer.itch.io/rpgmaker-mz-mf-core-plugin
@@ -32,7 +32,7 @@ All APIs live in the global `MF` namespace.
 | `MF.Log` | Prefixed logging |
 | `MF.Utils` | Type checks, clone, merge, diff, paths, equality, uid |
 | `MF.Math` | clamp, lerp, remap, snap, rectangles, easing |
-| `MF.Units` | Size expressions: `"240"`, `"50%"`, `"100%-240"`, `"auto"` |
+| `MF.Units` | Size expressions: `"240"`, `"50%"`, `"100%-240"`, `"auto"`; functions (`min`, `clamp`, `lerp`, `angle`, …), comparisons, `? :` |
 | `MF.Anchor` | Anchor points (top-left, center, bottom-right, ...) |
 | `MF.Color` | Color parsing and conversion |
 | `MF.Hook` | Safe method overriding (`alias` / `before` / `after`) |
