@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MF_Core — Getting Started</title>
+<link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+
+<nav>
+    <div class="title"><a href="index.html">MF_Core</a></div>
+    <div class="version">v1.0.0 · Getting Started</div>
+    <div class="search">
+        <input id="filter" type="search" placeholder="Search this page…" aria-label="Search this page" autocomplete="off">
+        <kbd>/</kbd>
+    </div>
+    <div id="results" role="listbox"></div>
+    <ul id="toc">
+        <li class="group">Quick start · 5 minutes</li>
+        <li><a href="#install">1. Install</a></li>
+        <li><a href="#check">2. Check it works</a></li>
+        <li><a href="#hello">3. First plugin</a></li>
+        <li class="group">Tutorial · Quest log</li>
+        <li><a href="#tutorial">What we build</a></li>
+        <li><a href="#t-skeleton">1. Skeleton</a></li>
+        <li><a href="#t-params">2. Parameters</a></li>
+        <li><a href="#t-save">3. Save data</a></li>
+        <li><a href="#t-i18n">4. Translations</a></li>
+        <li><a href="#t-text">5. Text code</a></li>
+        <li><a href="#t-window">6. Window</a></li>
+        <li><a href="#t-scene">7. Scene + animation</a></li>
+        <li><a href="#t-input">8. Hotkey</a></li>
+        <li><a href="#t-try">9. Try it</a></li>
+        <li><a href="#t-full">Full source</a></li>
+        <li class="group">After that</li>
+        <li><a href="#checklist">Checklist</a></li>
+        <li><a href="#next">Next steps</a></li>
+        <li><a href="index.html">API reference →</a></li>
+        <li><a href="index.html#pitfalls">Pitfalls →</a></li>
+    </ul>
+</nav>
+
+<main>
+
+<h1>Getting Started</h1>
+<p class="lead">Five minutes to a working setup, then one complete example that touches the modules you will use most: plugin registration, parameters, save data, translations, text codes, a window with layout, a tween and a hotkey.</p>
+
+<div class="cards">
+    <a class="card" href="#install"><strong>Quick start</strong><span>Install, check, first plugin — 5 minutes</span></a>
+    <a class="card" href="#tutorial"><strong>Tutorial</strong><span>Build a quest log step by step — 20 minutes</span></a>
+    <a class="card" href="index.html#pitfalls"><strong>Pitfalls</strong><span>The mistakes everybody makes once — read before shipping</span></a>
+    <a class="card" href="index.html"><strong>API reference</strong><span>Every module and function, searchable</span></a>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="install"><span class="step">1</span>Install</h2>
+<ol>
+    <li>Copy <code>MF_Core.js</code> to <code>js/plugins/</code> of your project.</li>
+    <li>Open <em>Tools → Plugin Manager</em>, add <strong>MF_Core</strong> and move it to the <strong>top</strong> of the list, above every other <code>MF_*</code> plugin.</li>
+    <li>Leave the parameters at their defaults for now.</li>
+</ol>
+
+<!-- ================================================================== -->
+<h2 id="check"><span class="step">2</span>Check it works</h2>
+<p>Start a playtest and press <kbd>F8</kbd> to open the developer console. Type:</p>
+<pre><code>MF.Core.list()
+// → [{ name: "MF_Core", version: "1.0.0" }]
+
+MF.Units.resolve("100%-240", Graphics.boxWidth)
+// → 576 (with the default 816 px screen)
+
+MF.I18n.locale()
+// → "en" / "ru-RU" / … — taken from the database or the system</code></pre>
+<p class="result">If <code>MF</code> is undefined, the plugin is not enabled or failed to load — the console shows why.</p>
+
+<!-- ================================================================== -->
+<h2 id="hello"><span class="step">3</span>First plugin</h2>
+<p>Create <code>js/plugins/MF_Hello.js</code>, add it in the Plugin Manager <strong>below</strong> MF_Core, and start a playtest:</p>
+<pre><code>/*:
+ * @target MZ
+ * @plugindesc [v0.1.0] Hello, MF_Core.
+ * @base MF_Core
+ * @orderAfter MF_Core
+ * @help Requires: MF_Core 1.0.0+ (written against 1.0.0)
+ */
+(() =&gt; {
+    "use strict";
+    MF.Core.register("MF_Hello", "0.1.0", { requires: { MF_Core: "1.0.0" } });
+
+    let greeted = false;
+    MF.Hook.after(Scene_Map.prototype, "start", function() {
+        if (greeted) return;          // start() runs every time you return from a menu
+        greeted = true;
+        MF.Text.show("Hello from \\C[3]MF_Core\\C[0]!\\W[30] Nice to meet you.");
+    }, "MF_Hello");
+})();</code></pre>
+<p class="result">A message appears on the map with a colored word and a half-second pause (<code>\W[30]</code> = 30 frames).</p>
+<p>Three things happened:</p>
+<ul>
+    <li><code>MF.Core.register(…, { requires })</code> — if MF_Core is missing or too old, the player sees a clear error instead of a random crash. <code>@base</code> / <code>@orderAfter</code> make the Plugin Manager warn even earlier.</li>
+    <li><code>MF.Hook.after</code> — extends <code>Scene_Map.start</code> without copying engine code.</li>
+    <li><code>MF.Text.show</code> — shows a message and returns a Promise; <code>\W[n]</code> is one of the extra text codes.</li>
+</ul>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>In JavaScript strings the backslash must be doubled: <code>"\\C[3]"</code>. In the event editor's <em>Show Text</em> you type it once: <code>\C[3]</code>. <a class="more" href="index.html#pitfall-backslash">Details</a></div>
+
+<!-- ================================================================== -->
+<h2 id="tutorial">Tutorial: a quest log</h2>
+<p>We build <code>MF_QuestLog.js</code>: event commands start and complete quests, the state is stored in the save file, a hotkey on the map opens a centered window listing the quests, and a text code prints a quest's title inside messages. About 120 lines in total.</p>
+<table>
+    <tr><th>Step</th><th>Module</th><th>What you learn</th></tr>
+    <tr><td><a href="#t-skeleton">1</a></td><td><code>MF.Core</code></td><td>Declaring dependencies and versions</td></tr>
+    <tr><td><a href="#t-params">2</a></td><td><code>MF.Schema</code></td><td>Validated plugin parameters with defaults</td></tr>
+    <tr><td><a href="#t-save">3</a></td><td><code>MF.Save</code></td><td>State inside the save file — no <code>DataManager</code> patching</td></tr>
+    <tr><td><a href="#t-i18n">4</a></td><td><code>MF.I18n</code></td><td>Translations with plural forms</td></tr>
+    <tr><td><a href="#t-text">5</a></td><td><code>MF.Text</code></td><td>A custom text code for messages</td></tr>
+    <tr><td><a href="#t-window">6</a></td><td><code>MF.UI</code>, <code>MF.Layout</code></td><td>A window sized in <code>%</code> and <code>"auto"</code>, centered by an anchor</td></tr>
+    <tr><td><a href="#t-scene">7</a></td><td><code>MF.Tween</code></td><td>Slide-in animation</td></tr>
+    <tr><td><a href="#t-input">8</a></td><td><code>MF.Input</code>, <code>MF.Hook</code></td><td>A hotkey that doesn't clash with RPG Maker's keys</td></tr>
+</table>
+<p>Each step shows only the new code. The <a href="#t-full">full source</a> is at the end.</p>
+
+<!-- ================================================================== -->
+<h3 id="t-skeleton"><span class="step">1</span>Skeleton</h3>
+<pre><code>/*:
+ * @target MZ
+ * @plugindesc [v0.1.0] Simple quest log (MF_Core tutorial).
+ * @author You
+ * @base MF_Core
+ * @orderAfter MF_Core
+ *
+ * @help MF_QuestLog.js
+ * Requires: MF_Core 1.0.0+ (written against 1.0.0)
+ */
+(() =&gt; {
+    "use strict";
+    const PLUGIN_NAME = "MF_QuestLog";
+
+    if (!window.MF || !MF.Core) throw new Error(`${PLUGIN_NAME} requires MF_Core.`);
+    MF.Core.register(PLUGIN_NAME, "0.1.0", { requires: { MF_Core: "1.0.0" } });
+
+    // … the next steps go here
+})();</code></pre>
+<p>Write down the MF_Core version you develop against — in code <em>and</em> in <code>@help</code>. When MF_Core changes later, you will know immediately which plugins need a look. See <a href="index.html#versioning">Versioning policy</a>.</p>
+
+<!-- ================================================================== -->
+<h3 id="t-params"><span class="step">2</span>Parameters</h3>
+<p>Add a parameter to the header:</p>
+<pre><code> * @param hotkey
+ * @text Hotkey
+ * @desc Key that opens the quest log on the map (a-z, 0-9).
+ * @default j</code></pre>
+<p>…and read it with a schema:</p>
+<pre><code>const params = MF.Core.parameters(PLUGIN_NAME, {
+    type: "object",
+    properties: {
+        hotkey: { type: "string", pattern: "^[a-z0-9]$", default: "j" }
+    }
+});</code></pre>
+<p class="result">A wrong value (e.g. <code>"ctrl"</code>) produces one readable console warning listing the field, instead of a crash three scenes later. Numbers and booleans from the Plugin Manager arrive as strings — the schema converts them.</p>
+
+<!-- ================================================================== -->
+<h3 id="t-save"><span class="step">3</span>Save data and plugin commands</h3>
+<p>The quest list must survive saving and loading. <code>MF.Save</code> stores it inside the save file:</p>
+<pre><code>MF.Save.register(PLUGIN_NAME, {
+    version: 1,
+    default: () =&gt; ({ quests: {} })      // id → { title, done }
+});
+const state = () =&gt; MF.Save.get(PLUGIN_NAME);</code></pre>
+<p>Add two plugin commands to the header…</p>
+<pre><code> * @command start
+ * @text Start quest
+ * @arg id
+ * @text Quest ID
+ * @arg title
+ * @text Title
+ *
+ * @command complete
+ * @text Complete quest
+ * @arg id
+ * @text Quest ID</code></pre>
+<p>…and implement them:</p>
+<pre><code>PluginManager.registerCommand(PLUGIN_NAME, "start", args =&gt; {
+    state().quests[args.id] = { title: args.title, done: false };
+});
+PluginManager.registerCommand(PLUGIN_NAME, "complete", args =&gt; {
+    const quest = state().quests[args.id];
+    if (quest) quest.done = true;
+});</code></pre>
+<p class="result">New game → empty list. Save → the list is written. Load → it is back. Old saves made before the plugin was installed simply get the default.</p>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>Store plain data (objects, arrays, strings, numbers) — not class instances or sprites. <a class="more" href="index.html#pitfall-save-plain">Details</a></div>
+
+<!-- ================================================================== -->
+<h3 id="t-i18n"><span class="step">4</span>Translations</h3>
+<pre><code>MF.I18n.register(PLUGIN_NAME, {
+    en: {
+        empty: "No quests yet.",
+        done: "done",
+        count: { one: "{count} active quest", other: "{count} active quests" }
+    },
+    ru: {
+        empty: "Заданий пока нет.",
+        done: "выполнено",
+        count: {
+            one: "{count} активное задание",
+            few: "{count} активных задания",
+            many: "{count} активных заданий",
+            other: "{count} активного задания"
+        }
+    }
+});
+const t = MF.I18n.translator(PLUGIN_NAME);
+
+t("count", { count: 3 });   // "3 active quests" / "3 активных задания"</code></pre>
+<p>The language comes from the database locale (or the player's saved choice). Missing keys fall back to English, then to the key itself — with a one-time warning.</p>
+
+<!-- ================================================================== -->
+<h3 id="t-text"><span class="step">5</span>A text code for messages</h3>
+<pre><code>MF.Text.registerMacro("QUEST", id =&gt; {
+    const quest = state().quests[id];
+    return quest ? `\\C[2]${quest.title}\\C[0]` : "???";
+});</code></pre>
+<p>Now any <em>Show Text</em> can say <code>New quest: \QUEST[slimes]!</code> and the title appears in color. A macro's result may contain other codes — here <code>\C[2]</code>.</p>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>Code names are letters only, and <code>V N P G C I PX PY FS</code> are taken by RPG Maker. <a class="more" href="index.html#pitfall-code-names">Details</a></div>
+
+<!-- ================================================================== -->
+<h3 id="t-window"><span class="step">6</span>The window</h3>
+<p><code>MF.UI.Window</code> is a normal <code>Window_Base</code> that understands a layout: sizes in <code>%</code>, <code>"auto"</code> height in rows, and an anchor.</p>
+<pre><code>function Window_QuestList() {
+    this.initialize(...arguments);
+}
+Window_QuestList.prototype = Object.create(MF.UI.Window.prototype);
+Window_QuestList.prototype.constructor = Window_QuestList;
+
+Window_QuestList.prototype.initialize = function(spec) {
+    MF.UI.Window.prototype.initialize.call(this, spec);
+    this.refresh();                                  // draw once after creation
+};
+
+Window_QuestList.prototype.quests = function() {
+    return Object.values(state().quests);
+};
+
+// height: "auto" asks for this many rows: a header line + one per quest
+Window_QuestList.prototype.layoutRows = function() {
+    return Math.max(2, this.quests().length + 1);
+};
+
+Window_QuestList.prototype.refresh = function() {
+    MF.UI.Window.prototype.refresh.call(this);       // clears the contents
+    const quests = this.quests();
+    const active = quests.filter(q =&gt; !q.done).length;
+    this.drawText(t("count", { count: active }), 0, 0, this.innerWidth, "center");
+    if (quests.length === 0) {
+        this.drawText(t("empty"), 0, this.lineHeight(), this.innerWidth, "center");
+        return;
+    }
+    quests.forEach((quest, i) =&gt; {
+        const y = this.lineHeight() * (i + 1);
+        this.changePaintOpacity(!quest.done);
+        this.drawText(quest.title, 0, y, this.innerWidth);
+        if (quest.done) this.drawText(t("done"), 0, y, this.innerWidth, "right");
+    });
+    this.changePaintOpacity(true);
+};</code></pre>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span><code>MF.UI.Window</code> calls <code>refresh()</code> automatically only after a <em>resize</em>. Call it yourself after creation and whenever the data changes. <a class="more" href="index.html#pitfall-window-refresh">Details</a></div>
+
+<!-- ================================================================== -->
+<h3 id="t-scene"><span class="step">7</span>The scene and a slide-in animation</h3>
+<pre><code>function Scene_QuestLog() {
+    this.initialize(...arguments);
+}
+Scene_QuestLog.prototype = Object.create(Scene_MenuBase.prototype);
+Scene_QuestLog.prototype.constructor = Scene_QuestLog;
+
+Scene_QuestLog.prototype.create = function() {
+    Scene_MenuBase.prototype.create.call(this);
+    this._questWindow = new Window_QuestList({
+        anchor: "center",
+        width: "60%", maxWidth: 520,
+        height: "auto", maxHeight: "90%"
+    });
+    this.addWindow(this._questWindow);
+};
+
+Scene_QuestLog.prototype.start = function() {
+    Scene_MenuBase.prototype.start.call(this);
+    const win = this._questWindow;
+    MF.Tween.from(win, { y: win.y - 60, contentsOpacity: 0 }, { duration: 15, easing: "easeOutCubic" });
+};
+
+Scene_QuestLog.prototype.update = function() {
+    Scene_MenuBase.prototype.update.call(this);
+    if (Input.isTriggered("cancel") || Input.isTriggered("questLog") || TouchInput.isCancelled()) {
+        SoundManager.playCancel();
+        this.popScene();
+    }
+};</code></pre>
+<p class="result">The window is centered at 60 % of the screen width (never wider than 520 px), as tall as its rows, and slides in over 15 frames (¼ second).</p>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>Durations are in <strong>frames</strong>, not milliseconds. Tweens pause when the game window loses focus and are cancelled on scene change. <a class="more" href="index.html#pitfall-frames">Details</a></div>
+
+<!-- ================================================================== -->
+<h3 id="t-input"><span class="step">8</span>The hotkey</h3>
+<pre><code>MF.Input.bind("questLog", { keys: [params.hotkey] });
+
+MF.Hook.after(Scene_Map.prototype, "update", function() {
+    if (Input.isTriggered("questLog") &amp;&amp; $gamePlayer.canMove() &amp;&amp; !SceneManager.isSceneChanging()) {
+        SceneManager.push(Scene_QuestLog);
+    }
+}, PLUGIN_NAME);</code></pre>
+<p><code>$gamePlayer.canMove()</code> is false while an event or a message is running, so the log never opens in the middle of a cut-scene.</p>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>RPG Maker already uses <kbd>Q</kbd>, <kbd>W</kbd>, <kbd>X</kbd>, <kbd>Z</kbd>, arrows, <kbd>Space</kbd>, <kbd>Enter</kbd>, <kbd>Esc</kbd>, <kbd>Shift</kbd>… <code>bind</code> refuses to steal them and prints a warning — that is why the default hotkey is <kbd>J</kbd>. <a class="more" href="index.html#pitfall-keys">Details</a></div>
+
+<!-- ================================================================== -->
+<h3 id="t-try"><span class="step">9</span>Try it</h3>
+<ol>
+    <li>Add <code>MF_QuestLog</code> below <code>MF_Core</code> in the Plugin Manager.</li>
+    <li>Create an event with:
+        <ul>
+            <li><em>Plugin Command</em> → MF_QuestLog → <em>Start quest</em>, id <code>slimes</code>, title <code>Defeat 3 slimes</code></li>
+            <li><em>Show Text</em>: <code>New quest: \QUEST[slimes]!</code></li>
+        </ul>
+    </li>
+    <li>Playtest, talk to the event, press <kbd>J</kbd>. Save, reload — the quest is still there.</li>
+</ol>
+<div class="ok">You have used 8 modules of MF_Core. Everything else in the reference works the same way: small, independent building blocks.</div>
+
+<!-- ================================================================== -->
+<h3 id="t-full">Full source</h3>
+<details>
+<summary>MF_QuestLog.js (click to expand)</summary>
+<pre><code>/*:
+ * @target MZ
+ * @plugindesc [v0.1.0] Simple quest log (MF_Core tutorial).
+ * @author You
+ * @base MF_Core
+ * @orderAfter MF_Core
+ *
+ * @param hotkey
+ * @text Hotkey
+ * @desc Key that opens the quest log on the map (a-z, 0-9).
+ * @default j
+ *
+ * @command start
+ * @text Start quest
+ * @arg id
+ * @text Quest ID
+ * @arg title
+ * @text Title
+ *
+ * @command complete
+ * @text Complete quest
+ * @arg id
+ * @text Quest ID
+ *
+ * @help MF_QuestLog.js
+ * Requires: MF_Core 1.0.0+ (written against 1.0.0)
+ *
+ * Text code: \QUEST[id] — title of a quest.
+ */
+(() =&gt; {
+    "use strict";
+    const PLUGIN_NAME = "MF_QuestLog";
+
+    if (!window.MF || !MF.Core) throw new Error(`${PLUGIN_NAME} requires MF_Core.`);
+    MF.Core.register(PLUGIN_NAME, "0.1.0", { requires: { MF_Core: "1.0.0" } });
+
+    //--- Parameters -----------------------------------------------------------
+    const params = MF.Core.parameters(PLUGIN_NAME, {
+        type: "object",
+        properties: {
+            hotkey: { type: "string", pattern: "^[a-z0-9]$", default: "j" }
+        }
+    });
+
+    //--- Save data and commands -------------------------------------------------
+    MF.Save.register(PLUGIN_NAME, {
+        version: 1,
+        default: () =&gt; ({ quests: {} })
+    });
+    const state = () =&gt; MF.Save.get(PLUGIN_NAME);
+
+    PluginManager.registerCommand(PLUGIN_NAME, "start", args =&gt; {
+        state().quests[args.id] = { title: args.title, done: false };
+    });
+    PluginManager.registerCommand(PLUGIN_NAME, "complete", args =&gt; {
+        const quest = state().quests[args.id];
+        if (quest) quest.done = true;
+    });
+
+    //--- Translations -------------------------------------------------------------
+    MF.I18n.register(PLUGIN_NAME, {
+        en: {
+            empty: "No quests yet.",
+            done: "done",
+            count: { one: "{count} active quest", other: "{count} active quests" }
+        },
+        ru: {
+            empty: "Заданий пока нет.",
+            done: "выполнено",
+            count: {
+                one: "{count} активное задание",
+                few: "{count} активных задания",
+                many: "{count} активных заданий",
+                other: "{count} активного задания"
+            }
+        }
+    });
+    const t = MF.I18n.translator(PLUGIN_NAME);
+
+    //--- Text code ------------------------------------------------------------------
+    MF.Text.registerMacro("QUEST", id =&gt; {
+        const quest = state().quests[id];
+        return quest ? `\\C[2]${quest.title}\\C[0]` : "???";
+    });
+
+    //--- Window -----------------------------------------------------------------------
+    function Window_QuestList() {
+        this.initialize(...arguments);
+    }
+    Window_QuestList.prototype = Object.create(MF.UI.Window.prototype);
+    Window_QuestList.prototype.constructor = Window_QuestList;
+
+    Window_QuestList.prototype.initialize = function(spec) {
+        MF.UI.Window.prototype.initialize.call(this, spec);
+        this.refresh();
+    };
+    Window_QuestList.prototype.quests = function() {
+        return Object.values(state().quests);
+    };
+    Window_QuestList.prototype.layoutRows = function() {
+        return Math.max(2, this.quests().length + 1);
+    };
+    Window_QuestList.prototype.refresh = function() {
+        MF.UI.Window.prototype.refresh.call(this);
+        const quests = this.quests();
+        const active = quests.filter(q =&gt; !q.done).length;
+        this.drawText(t("count", { count: active }), 0, 0, this.innerWidth, "center");
+        if (quests.length === 0) {
+            this.drawText(t("empty"), 0, this.lineHeight(), this.innerWidth, "center");
+            return;
+        }
+        quests.forEach((quest, i) =&gt; {
+            const y = this.lineHeight() * (i + 1);
+            this.changePaintOpacity(!quest.done);
+            this.drawText(quest.title, 0, y, this.innerWidth);
+            if (quest.done) this.drawText(t("done"), 0, y, this.innerWidth, "right");
+        });
+        this.changePaintOpacity(true);
+    };
+
+    //--- Scene ------------------------------------------------------------------------
+    function Scene_QuestLog() {
+        this.initialize(...arguments);
+    }
+    Scene_QuestLog.prototype = Object.create(Scene_MenuBase.prototype);
+    Scene_QuestLog.prototype.constructor = Scene_QuestLog;
+
+    Scene_QuestLog.prototype.create = function() {
+        Scene_MenuBase.prototype.create.call(this);
+        this._questWindow = new Window_QuestList({
+            anchor: "center",
+            width: "60%", maxWidth: 520,
+            height: "auto", maxHeight: "90%"
+        });
+        this.addWindow(this._questWindow);
+    };
+    Scene_QuestLog.prototype.start = function() {
+        Scene_MenuBase.prototype.start.call(this);
+        const win = this._questWindow;
+        MF.Tween.from(win, { y: win.y - 60, contentsOpacity: 0 }, { duration: 15, easing: "easeOutCubic" });
+    };
+    Scene_QuestLog.prototype.update = function() {
+        Scene_MenuBase.prototype.update.call(this);
+        if (Input.isTriggered("cancel") || Input.isTriggered("questLog") || TouchInput.isCancelled()) {
+            SoundManager.playCancel();
+            this.popScene();
+        }
+    };
+
+    //--- Hotkey ---------------------------------------------------------------------
+    MF.Input.bind("questLog", { keys: [params.hotkey] });
+
+    MF.Hook.after(Scene_Map.prototype, "update", function() {
+        if (Input.isTriggered("questLog") &amp;&amp; $gamePlayer.canMove() &amp;&amp; !SceneManager.isSceneChanging()) {
+            SceneManager.push(Scene_QuestLog);
+        }
+    }, PLUGIN_NAME);
+})();</code></pre>
+</details>
+
+<!-- ================================================================== -->
+<h2 id="checklist">Checklist for every MF_* plugin</h2>
+<ul>
+    <li><code>@base MF_Core</code> and <code>@orderAfter MF_Core</code> in the header.</li>
+    <li><code>MF.Core.register(name, version, { requires: { MF_Core: "x.y.z" } })</code> and the same version in <code>@help</code>.</li>
+    <li>Parameters read through a schema.</li>
+    <li>State in <code>MF.Save</code> (per save) or <code>MF.Config</code> (global settings) — never in module-level variables that are lost on load.</li>
+    <li>Engine methods extended with <code>MF.Hook</code>, not copied.</li>
+    <li>Backslashes doubled in JavaScript strings.</li>
+    <li>Skimmed the <a href="index.html#pitfalls">Pitfalls</a> list.</li>
+</ul>
+
+<!-- ================================================================== -->
+<h2 id="next">Next steps</h2>
+<table>
+    <tr><th>If you want to…</th><th>Read</th></tr>
+    <tr><td>react to switches, variables, items without code</td><td><a href="index.html#condition"><code>MF.Condition</code></a></td></tr>
+    <tr><td>play a cut-scene: move, wait, fade, talk</td><td><a href="index.html#tween"><code>MF.Tween</code></a>, <a href="index.html#timer"><code>MF.Timer</code></a>, <a href="index.html#queue"><code>MF.Queue</code></a>, <a href="index.html#text"><code>MF.Text.show / choice</code></a></td></tr>
+    <tr><td>add text effects (sound, face change, speed)</td><td><a href="index.html#text"><code>MF.Text</code></a></td></tr>
+    <tr><td>preload images and sounds with a loading bar</td><td><a href="index.html#assets"><code>MF.Assets</code></a></td></tr>
+    <tr><td>let players change settings that persist</td><td><a href="index.html#config"><code>MF.Config</code></a></td></tr>
+    <tr><td>build an in-game editor (drag, undo, save)</td><td><a href="index.html#document"><code>MF.Document</code></a>, <a href="index.html#input-drag"><code>MF.Input.draggable</code></a>, <a href="index.html#layout"><code>MF.Layout</code></a></td></tr>
+    <tr><td>load your own JSON data files</td><td><a href="index.html#data"><code>MF.Data</code></a></td></tr>
+    <tr><td>change your data format later without breaking saves</td><td><a href="index.html#save"><code>MF.Save</code></a> (<code>version</code>, <code>migrate</code>), <a href="index.html#migration"><code>MF.Migration</code></a></td></tr>
+</table>
+
+</main>
+
+<script src="assets/docs.js"></script>
+</body>
+</html>

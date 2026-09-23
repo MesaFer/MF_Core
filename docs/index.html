@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MF_Core — API Reference</title>
+<link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+
+<nav>
+    <div class="title">MF_Core</div>
+    <div class="version">v1.0.0 · RPG Maker MZ</div>
+    <div class="search">
+        <input id="filter" type="search" placeholder="Search functions, options…" aria-label="Search the reference" autocomplete="off">
+        <kbd>/</kbd>
+    </div>
+    <div id="results" role="listbox"></div>
+    <ul id="toc">
+        <li class="group">Start here</li>
+        <li><a href="getting-started.html">Getting started →</a></li>
+        <li><a href="#pitfalls">Pitfalls</a></li>
+        <li><a href="#overview">Module overview</a></li>
+        <li><a href="#install">Installation</a></li>
+        <li><a href="#params">Parameters</a></li>
+        <li><a href="#usage">Plugin template</a></li>
+        <li class="group">Foundation</li>
+        <li><a href="#core">MF.Core</a></li>
+        <li><a href="#log">MF.Log</a></li>
+        <li><a href="#utils">MF.Utils</a></li>
+        <li><a href="#math">MF.Math</a></li>
+        <li><a href="#units">MF.Units</a></li>
+        <li><a href="#anchor">MF.Anchor</a></li>
+        <li><a href="#color">MF.Color</a></li>
+        <li><a href="#hook">MF.Hook</a></li>
+        <li><a href="#events">MF.Events</a></li>
+        <li><a href="#deprecation">MF.Deprecation</a></li>
+        <li><a href="#schema">MF.Schema</a></li>
+        <li class="group">Game logic</li>
+        <li><a href="#condition">MF.Condition</a></li>
+        <li><a href="#script">MF.Script</a></li>
+        <li class="group">Storage</li>
+        <li><a href="#fs">MF.FS</a></li>
+        <li><a href="#data">MF.Data</a></li>
+        <li><a href="#save">MF.Save</a></li>
+        <li><a href="#config">MF.Config</a></li>
+        <li><a href="#migration">MF.Migration</a></li>
+        <li><a href="#history">MF.History</a></li>
+        <li><a href="#document">MF.Document</a></li>
+        <li class="group">Localization &amp; text</li>
+        <li><a href="#i18n">MF.I18n</a></li>
+        <li><a href="#text">MF.Text</a></li>
+        <li class="group">Input</li>
+        <li><a href="#input">MF.Input</a></li>
+        <li class="sub"><a href="#input-drag">Drag-and-drop</a></li>
+        <li class="group">Time &amp; animation</li>
+        <li><a href="#ticker">MF.Ticker</a></li>
+        <li><a href="#tween">MF.Tween</a></li>
+        <li><a href="#timer">MF.Timer</a></li>
+        <li><a href="#queue">MF.Queue</a></li>
+        <li class="group">Display &amp; resources</li>
+        <li><a href="#layout">MF.Layout</a></li>
+        <li><a href="#ui">MF.UI</a></li>
+        <li><a href="#assets">MF.Assets</a></li>
+        <li class="group">Reference</li>
+        <li><a href="#versioning">Versioning policy</a></li>
+        <li><a href="#bus-events">Bus events</a></li>
+        <li><a href="#errors">Error handling</a></li>
+        <li><a href="#changelog">Changelog</a></li>
+    </ul>
+</nav>
+
+<main>
+
+<h1>MF_Core — API Reference</h1>
+<p class="lead">Base library for the MF_* plugin family for RPG Maker MZ: utilities, math, layout units, safe hooks, events, validation, conditions, file/save/config storage, editable documents, localization and text codes, input and drag-and-drop, tweens and timers, asset preloading, and layout-aware display primitives.</p>
+
+<div class="cards">
+    <a class="card" href="getting-started.html"><strong>New here?</strong><span>5-minute quick start and a complete example plugin</span></a>
+    <a class="card" href="#pitfalls"><strong>Pitfalls</strong><span>The non-obvious details, collected in one place</span></a>
+    <a class="card" href="#overview"><strong>Module overview</strong><span>What each of the modules is for</span></a>
+</div>
+<p class="result">Press <kbd>/</kbd> to search every function, option and pitfall on this page.</p>
+
+<!-- ================================================================== -->
+<h2 id="overview">Overview</h2>
+<p>Everything is exposed through the global object <code>MF</code>. Modules marked <span class="tag">experimental</span> may change in a MINOR release (always listed in the changelog).</p>
+<table>
+    <tr><th>Module</th><th>Purpose</th></tr>
+    <tr><td><a href="#core"><code>MF.Core</code></a></td><td>Plugin registration, dependency and version checks, parameter parsing</td></tr>
+    <tr><td><a href="#log"><code>MF.Log</code></a></td><td>Prefixed console logging</td></tr>
+    <tr><td><a href="#utils"><code>MF.Utils</code></a></td><td>Type checks, clone, merge, diff, path access, ids, versions</td></tr>
+    <tr><td><a href="#math"><code>MF.Math</code></a></td><td>Numbers, snapping, rectangles, easing</td></tr>
+    <tr><td><a href="#units"><code>MF.Units</code></a></td><td>Size expressions: <code>"240"</code>, <code>"50%"</code>, <code>"100%-240"</code>, <code>"auto"</code></td></tr>
+    <tr><td><a href="#anchor"><code>MF.Anchor</code></a></td><td>Nine anchor points and coordinate conversion</td></tr>
+    <tr><td><a href="#color"><code>MF.Color</code></a></td><td>Color parsing and conversion</td></tr>
+    <tr><td><a href="#hook"><code>MF.Hook</code></a></td><td>Method overriding: <code>alias</code> / <code>before</code> / <code>after</code></td></tr>
+    <tr><td><a href="#events"><code>MF.Events</code></a></td><td>EventEmitter and the global bus</td></tr>
+    <tr><td><a href="#deprecation"><code>MF.Deprecation</code></a></td><td>Deprecation warnings and API redirects</td></tr>
+    <tr><td><a href="#schema"><code>MF.Schema</code></a></td><td>Validation and normalization of structured data and plugin parameters</td></tr>
+    <tr><td><a href="#condition"><code>MF.Condition</code></a></td><td>Declarative conditions (switches, variables, items, …)</td></tr>
+    <tr><td><a href="#script"><code>MF.Script</code></a></td><td>Access-controlled execution of JS from data</td></tr>
+    <tr><td><a href="#fs"><code>MF.FS</code></a></td><td>File access (NW.js), JSON loading, downloads</td></tr>
+    <tr><td><a href="#data"><code>MF.Data</code></a></td><td>Extra <code>data/*.json</code> files loaded with the database</td></tr>
+    <tr><td><a href="#save"><code>MF.Save</code></a></td><td>Plugin state inside save files</td></tr>
+    <tr><td><a href="#config"><code>MF.Config</code></a></td><td>Plugin settings in <code>config.rmmzsave</code></td></tr>
+    <tr><td><a href="#migration"><code>MF.Migration</code></a></td><td>Versioned data format migrations</td></tr>
+    <tr><td><a href="#history"><code>MF.History</code></a></td><td>Undo/Redo stack</td></tr>
+    <tr><td><a href="#document"><code>MF.Document</code></a> <span class="tag">experimental</span></td><td>Editable JSON document: undo/redo + validation + safe save</td></tr>
+    <tr><td><a href="#i18n"><code>MF.I18n</code></a></td><td>Localization with plural forms</td></tr>
+    <tr><td><a href="#text"><code>MF.Text</code></a></td><td>Custom escape codes, message/choice Promises, word wrap</td></tr>
+    <tr><td><a href="#input"><code>MF.Input</code></a></td><td>Actions, raw keys, shortcuts, pointer, drag-and-drop <span class="tag">experimental</span>, devices</td></tr>
+    <tr><td><a href="#ticker"><code>MF.Ticker</code></a></td><td>Per-frame update runner</td></tr>
+    <tr><td><a href="#tween"><code>MF.Tween</code></a></td><td>Awaitable property animation</td></tr>
+    <tr><td><a href="#timer"><code>MF.Timer</code></a></td><td>Frame-based waits, delays, intervals</td></tr>
+    <tr><td><a href="#queue"><code>MF.Queue</code></a></td><td>Sequential async task queue</td></tr>
+    <tr><td><a href="#layout"><code>MF.Layout</code></a> <span class="tag">experimental</span></td><td>Units + Anchor layout for any display object</td></tr>
+    <tr><td><a href="#ui"><code>MF.UI</code></a> <span class="tag">experimental</span></td><td>Window / Sprite / Container with built-in layout</td></tr>
+    <tr><td><a href="#assets"><code>MF.Assets</code></a></td><td>Batch preloading with progress and safe failures</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="pitfalls">Pitfalls</h2>
+<p>Details that are easy to miss when you jump straight to one function. Each item is also marked with a red <span class="pitfall-label">Pitfall</span> box in its section.</p>
+
+<h3 id="pitfalls-setup">Setup and versions</h3>
+<ul class="pitfalls-list">
+    <li id="pitfall-order"><strong>MF_Core must be above every MF_* plugin</strong>Otherwise <code>MF</code> is undefined when the plugin loads. Add <code>@base MF_Core</code> and <code>@orderAfter MF_Core</code> so the Plugin Manager warns about the order.<div class="see">See: <a href="#install">Installation</a>, <a href="#usage">Plugin template</a></div></li>
+    <li id="pitfall-version"><strong>Always state the MF_Core version you wrote against</strong><code>register(name, v, { requires: { MF_Core: "1.0.0" } })</code> and the same in <code>@help</code>. Without it you cannot tell later which plugins were written for which API; a missing version logs a warning.<div class="see">See: <a href="#versioning">Versioning policy</a>, <a href="#core">MF.Core</a></div></li>
+    <li id="pitfall-experimental"><strong>Experimental APIs may change in a MINOR release</strong><code>MF.Layout</code>, <code>MF.UI</code>, <code>MF.Document</code> and <code>MF.Input.draggable</code> can change in 1.x — always with a changelog entry. Read the changelog before updating MF_Core.<div class="see">See: <a href="#versioning">Versioning policy</a></div></li>
+    <li id="pitfall-hook-errors"><strong>Errors in hooks are not swallowed</strong>An exception in <code>MF.Hook.alias/before/after</code> shows the error screen, like any MZ plugin. Use <code>{ safe: true }</code> only for cosmetic additions — it hides errors of your function.<div class="see">See: <a href="#hook-safe">MF.Hook › safe mode</a></div></li>
+</ul>
+
+<h3 id="pitfalls-text">Text and messages</h3>
+<ul class="pitfalls-list">
+    <li id="pitfall-backslash"><strong>Backslashes are doubled in JavaScript strings</strong>In code: <code>"\\C[2]Hi\\C[0]"</code>. In the event editor you type <code>\C[2]Hi\C[0]</code>. A single backslash in JS silently turns <code>\C</code> into <code>C</code>.<div class="see">See: <a href="#text">MF.Text</a></div></li>
+    <li id="pitfall-drawing"><strong>Escape codes also run when text is only measured</strong>RPG Maker processes codes in <code>textSizeEx</code> (choice widths, word wrap) without drawing. Custom escapes with side effects (sounds, shakes, waits) must check <code>ctx.drawing</code>, and message-only effects <code>ctx.isMessage</code>. Otherwise a sound plays when the choice window is sized.<div class="see">See: <a href="#text">MF.Text › Custom codes</a></div></li>
+    <li id="pitfall-face"><strong><code>\FACE</code> does not move the text</strong>Changing the face mid-message keeps the text position. Start the message with a face (or reserve space) if you switch faces later.<div class="see">See: <a href="#text">MF.Text › Built-in codes</a></div></li>
+    <li id="pitfall-code-names"><strong>Code names: letters only, some are reserved</strong>RPG Maker parses codes as <code>[A-Z]+</code>, so <code>\I18N</code> would be read as <code>\I</code>. <code>V N P G C I PX PY FS</code> are reserved. Parameters cannot contain <code>]</code>.<div class="see">See: <a href="#text">MF.Text › Custom codes</a></div></li>
+    <li id="pitfall-show-scene"><strong><code>MF.Text.show</code> needs a message window</strong>Works on the map and in battle. In your own scene there is no <code>Window_Message</code> — the Promise waits forever (until the scene changes, then resolves <code>false</code>).<div class="see">See: <a href="#text">MF.Text › Messages as Promises</a></div></li>
+    <li id="pitfall-script"><strong>Script conditions are off by default</strong>With <em>Allow Scripts</em> disabled, <code>{ script: "…" }</code> is always <code>false</code>. A warning is logged once per snippet — check the console if a condition "never works".<div class="see">See: <a href="#script">MF.Script</a>, <a href="#params">Parameters</a></div></li>
+</ul>
+
+<h3 id="pitfalls-time">Time and animation</h3>
+<ul class="pitfalls-list">
+    <li id="pitfall-frames"><strong>Durations are frames, bound to the scene</strong><code>duration: 60</code> = one second at 60 fps. Tweens, timers and <code>Timer.until</code> pause while the game window is inactive and are cancelled on scene change (Promises resolve <code>false</code>). Use <code>persistent: true</code> to survive scene changes.<div class="see">See: <a href="#ticker">MF.Ticker</a>, <a href="#tween">MF.Tween</a>, <a href="#timer">MF.Timer</a></div></li>
+    <li id="pitfall-bindscene"><strong><code>Assets.bindScene</code> must be called before the scene starts</strong>Call it in <code>create()</code>. Once the scene has started, <code>isReady()</code> is no longer consulted.<div class="see">See: <a href="#assets">MF.Assets</a></div></li>
+    <li id="pitfall-audio"><strong>Preloaded audio is decoded again on playback</strong>RPG Maker creates a new buffer for every BGM/BGS/ME/SE playback. Preloading only warms the file cache — except static SE (<code>static: true</code>).<div class="see">See: <a href="#assets">MF.Assets</a></div></li>
+</ul>
+
+<h3 id="pitfalls-data">Data, saves and files</h3>
+<ul class="pitfalls-list">
+    <li id="pitfall-save-plain"><strong>Save data must be plain JSON-like data</strong>Objects, arrays, strings, numbers, booleans. Class instances survive only if their constructor is a global; sprites, bitmaps and functions never do.<div class="see">See: <a href="#save">MF.Save</a></div></li>
+    <li id="pitfall-module-state"><strong>Module-level variables are not saved</strong>A <code>let quests = {}</code> inside your plugin is lost on load and shared between save slots. Use <code>MF.Save</code> (per save) or <code>MF.Config</code> (global).<div class="see">See: <a href="#save">MF.Save</a>, <a href="#config">MF.Config</a></div></li>
+    <li id="pitfall-optional-data"><strong>An invalid optional data file becomes the default</strong>The game keeps running, but saving that default from an editor would overwrite the user's broken file. Check <code>MF.Data.status()</code> — or use <code>MF.Document</code>, which refuses such saves.<div class="see">See: <a href="#data">MF.Data</a>, <a href="#document">MF.Document</a></div></li>
+    <li id="pitfall-diff"><strong><code>Utils.diff</code> cannot express removed keys</strong>Removing a key from the target is not visible in the diff. Store explicit values such as <code>visible: false</code>.<div class="see">See: <a href="#utils">MF.Utils</a></div></li>
+    <li id="pitfall-units"><strong>Invalid size expressions fall back silently-ish</strong><code>"50% +"</code> resolves to the fallback (0 by default) with a console warning. Validate user input with <code>MF.Units.isValid</code> or a <code>units</code> schema.<div class="see">See: <a href="#units">MF.Units</a>, <a href="#schema">MF.Schema</a></div></li>
+</ul>
+
+<h3 id="pitfalls-input">Input and display</h3>
+<ul class="pitfalls-list">
+    <li id="pitfall-keys"><strong>RPG Maker already uses many keys</strong>Default bindings include Tab, Enter, Shift, Ctrl, Alt, Esc, Space, PageUp/Down, arrows, Insert, <kbd>Q</kbd>, <kbd>W</kbd>, <kbd>X</kbd>, <kbd>Z</kbd>, numpad and F9. <code>MF.Input.bind</code> skips those with a warning unless <code>override: true</code>.<div class="see">See: <a href="#input">MF.Input › Actions</a></div></li>
+    <li id="pitfall-typing"><strong>Shortcuts are ignored while typing in HTML fields</strong><code>isShortcut</code> returns <code>false</code> when an <code>input</code>/<code>textarea</code> has focus (editor inspectors), unless <code>{ whileTyping: true }</code>.<div class="see">See: <a href="#input">MF.Input › Raw keys and shortcuts</a></div></li>
+    <li id="pitfall-consume"><strong>A consumed pointer is invisible to the game for that frame</strong>While dragging (or after <code>consumePointer()</code>) <code>TouchInput.*</code> returns <code>false</code> — windows under the pointer don't react. Read raw values with <code>MF.Input.pointer()</code>.<div class="see">See: <a href="#input-drag">Drag-and-drop</a></div></li>
+    <li id="pitfall-window-refresh"><strong><code>MF.UI.Window</code> redraws only after a resize</strong><code>refresh()</code> is called automatically when the size changes. Call it yourself after creation and when your data changes.<div class="see">See: <a href="#ui">MF.UI</a></div></li>
+</ul>
+
+<!-- ================================================================== -->
+<h2 id="install">Installation</h2>
+<ol>
+    <li>Copy <code>MF_Core.js</code> to <code>js/plugins/</code>.</li>
+    <li>Enable it in the Plugin Manager.</li>
+    <li>Place it <strong>above</strong> all other <code>MF_*</code> plugins.</li>
+</ol>
+<p>Requires RPG Maker MZ 1.8+. File-writing features require NW.js (desktop / test play); everything else also works in browser builds.</p>
+
+<!-- ================================================================== -->
+<h2 id="params">Parameters</h2>
+<table>
+    <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>debug</code> (Debug Mode)</td><td><code>false</code></td><td>Prints <code>MF.Log.debug</code> messages to the console.</td></tr>
+    <tr><td><code>allowScript</code> (Allow Scripts)</td><td><code>false</code></td><td>Allows executing JS code stored in data: <code>script</code> conditions and actions. When disabled, scripts return their fallback value and a one-time warning is logged — see <a href="#script">MF.Script</a>.</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="usage">Plugin template</h2>
+<p>New to MF_Core? The <a href="getting-started.html#tutorial">tutorial</a> builds this plugin step by step.</p>
+<p>Template for a dependent plugin. Note the explicit MF_Core version in both <code>@help</code> and code — see <a href="#versioning">Versioning policy</a> (Reference).</p>
+<pre><code>/*:
+ * @target MZ
+ * @plugindesc [v0.1.0] Quest log.
+ * @author MesaFer
+ * @base MF_Core
+ * @orderAfter MF_Core
+ *
+ * @help MF_QuestLog.js
+ * Requires: MF_Core 1.0.0+ (written against 1.0.0)
+ */
+(() =&gt; {
+    "use strict";
+    const PLUGIN_NAME = "MF_QuestLog";
+
+    if (!window.MF || !MF.Core) throw new Error(`${PLUGIN_NAME} requires MF_Core.`);
+    MF.Core.register(PLUGIN_NAME, "0.1.0", { requires: { MF_Core: "1.0.0" } });
+
+    const params = MF.Core.parameters(PLUGIN_NAME, {
+        type: "object",
+        properties: {
+            maxQuests: { type: "integer", min: 1, default: 20 }
+        }
+    });
+
+    MF.Save.register(PLUGIN_NAME, { default: () =&gt; ({ quests: {} }), version: 1 });
+    const t = MF.I18n.translator(PLUGIN_NAME);
+})();</code></pre>
+<div class="note"><code>@base</code> and <code>@orderAfter</code> make the MZ Plugin Manager warn about a missing or misplaced MF_Core before the game even starts.</div>
+
+<!-- ================================================================== -->
+<h2 id="core">MF.Core</h2>
+
+<div class="sig">MF.Core.register(name, version, info?)</div>
+<p>Registers an MF_* plugin. <code>info.requires</code> — <code>{ pluginName: minVersion }</code>, each checked with <code>require()</code> before registration. Other <code>info</code> fields are stored in the registry entry.</p>
+<pre><code>MF.Core.register("MF_QuestLog", "0.1.0", { requires: { MF_Core: "1.0.0" } });</code></pre>
+
+<div class="sig">MF.Core.require(requester, name, minVersion) <span class="ret">→ true</span></div>
+<p>Throws an <code>Error</code> (shown by MZ on screen) when <code>name</code> is not registered or its version is lower than <code>minVersion</code>. Logs a warning when <code>minVersion</code> is omitted, and a one-time compatibility warning when the installed MAJOR version is higher than the required one.</p>
+
+<div class="sig">MF.Core.isRegistered(name, minVersion?) <span class="ret">→ boolean</span></div>
+<div class="sig">MF.Core.version(name) <span class="ret">→ string | null</span></div>
+<div class="sig">MF.Core.list() <span class="ret">→ Array&lt;{ name, version, … }&gt;</span></div>
+<div class="sig">MF.Core.parameters(pluginName, schema?) <span class="ret">→ object</span></div>
+<p>Same as <code>PluginManager.parameters</code>, but recursively parsed with <a href="#utils-parseParams"><code>MF.Utils.parseParams</code></a>. With a <a href="#schema">schema</a>, values are validated and defaults are applied; problems are logged as one warning listing all fields.</p>
+
+<table>
+    <tr><th>Property</th><th>Description</th></tr>
+    <tr><td><code>MF.Core.VERSION</code></td><td>Version string of MF_Core</td></tr>
+    <tr><td><code>MF.Core.params</code></td><td><code>{ debug, allowScript }</code></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="log">MF.Log</h2>
+<pre><code>MF.Log.debug(tag, ...args)   // only when the "debug" parameter is enabled
+MF.Log.info(tag, ...args)
+MF.Log.warn(tag, ...args)
+MF.Log.error(tag, ...args)</code></pre>
+<p>Output is prefixed with <code>[tag]</code>, e.g. <code>[MF_UIEditor] layout applied</code>.</p>
+
+<!-- ================================================================== -->
+<h2 id="utils">MF.Utils</h2>
+
+<h3>Type checks</h3>
+<table>
+    <tr><th>Function</th><th>Returns true when</th></tr>
+    <tr><td><code>isNumber(v)</code></td><td>finite number (not <code>NaN</code> / <code>Infinity</code>)</td></tr>
+    <tr><td><code>isString(v)</code></td><td>string</td></tr>
+    <tr><td><code>isFunction(v)</code></td><td>function</td></tr>
+    <tr><td><code>isObject(v)</code></td><td>non-null object that is not an array</td></tr>
+    <tr><td><code>isPlainObject(v)</code></td><td>object literal / <code>Object.create(null)</code></td></tr>
+    <tr><td><code>isEmpty(v)</code></td><td><code>null</code>, <code>undefined</code>, empty string, empty array or object without keys</td></tr>
+</table>
+
+<h3>Runtime mode</h3>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>isTest()</code></td><td>Test play (<code>test</code> option)</td></tr>
+    <tr><td><code>isBattleTest()</code></td><td>Battle test</td></tr>
+    <tr><td><code>isEventTest()</code></td><td>Event test</td></tr>
+    <tr><td><code>isNwjs()</code></td><td>Running in NW.js (desktop)</td></tr>
+</table>
+
+<h3>Data</h3>
+
+<div class="sig">clone(value) <span class="ret">→ copy</span></div>
+<p>Deep copy of plain data. Class instances are returned by reference.</p>
+
+<div class="sig">merge(...sources) <span class="ret">→ new object</span></div>
+<p>Deep merge. Arrays are replaced as a whole; <code>undefined</code> values are skipped, <code>null</code> is written. Arguments are not mutated.</p>
+<pre><code>MF.Utils.merge({ a: { b: 1, c: 2 } }, { a: { c: 3 } });  // { a: { b: 1, c: 3 } }</code></pre>
+
+<div class="sig">equals(a, b) <span class="ret">→ boolean</span></div>
+<p>Deep equality of plain data (<code>NaN</code> equals <code>NaN</code>).</p>
+
+<div class="sig">diff(base, target) <span class="ret">→ object</span></div>
+<p>Returns only the fields of <code>target</code> that differ from <code>base</code>. Always returns an object; nested objects without changes are omitted. Used to store layouts as overrides of the defaults.</p>
+<pre><code>MF.Utils.diff({ a: { b: 1 } }, { a: { b: 1 } });        // {}
+MF.Utils.diff({}, { a: 5 });                            // { a: 5 }
+MF.Utils.diff({ a: 5 }, { a: {} });                     // { a: {} }
+MF.Utils.diff({ w: { x: 1, y: 2 } }, { w: { x: 5, y: 2 } }); // { w: { x: 5 } }</code></pre>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span><strong>Overlay semantics.</strong> <code>merge(base, diff(base, target))</code> equals <code>target</code> as long as <code>target</code> does not <em>remove</em> keys that exist in <code>base</code>. Removals are not representable — use explicit values such as <code>visible: false</code>. <a class="more" href="#pitfall-diff">More</a></div>
+
+<h3>Path access</h3>
+<p>Paths are dot strings (<code>"a.b.0.c"</code>) or arrays (<code>["a", "b", 0, "c"]</code>).</p>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>get(obj, path, fallback?)</code></td><td>Value at path or <code>fallback</code></td></tr>
+    <tr><td><code>set(obj, path, value)</code></td><td>Writes the value, creating objects/arrays on the way (numeric key → array). Returns <code>obj</code></td></tr>
+    <tr><td><code>has(obj, path)</code></td><td>Own property exists along the whole path</td></tr>
+    <tr><td><code>unset(obj, path)</code></td><td>Deletes the last key</td></tr>
+    <tr><td><code>toPath(path)</code></td><td>Normalizes to an array</td></tr>
+</table>
+
+<h3>Misc</h3>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>uid(prefix = "mf")</code></td><td>Session-unique id, e.g. <code>mf_lx3k2a1</code></td></tr>
+    <tr><td><code>uniqueName(base, existing)</code></td><td><code>"window"</code>, <code>"window_2"</code>, … not present in <code>existing</code> (array or Set)</td></tr>
+    <tr id="utils-parseParams"><td><code>parseParams(value)</code></td><td>Recursively parses MZ plugin parameters: JSON strings, <code>"true"</code>/<code>"false"</code>, numbers</td></tr>
+    <tr><td><code>compareVersions(a, b)</code></td><td><code>-1</code>, <code>0</code> or <code>1</code> for <code>"1.2.3"</code>-style versions</td></tr>
+    <tr><td><code>debounce(fn, ms)</code></td><td>Debounced function with <code>.cancel()</code></td></tr>
+    <tr><td><code>parseJson(text, fallback = null)</code></td><td><code>JSON.parse</code> that never throws</td></tr>
+    <tr><td><code>format(template, data)</code></td><td><code>"Hello {name}"</code> substitution; supports paths <code>{actor.name}</code></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="math">MF.Math</h2>
+
+<h3>Numbers</h3>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>clamp(v, min, max)</code>, <code>clamp01(v)</code></td><td>Limit to range</td></tr>
+    <tr><td><code>lerp(a, b, t)</code></td><td>Linear interpolation</td></tr>
+    <tr><td><code>invLerp(a, b, v)</code></td><td>Inverse: position of <code>v</code> between <code>a</code> and <code>b</code></td></tr>
+    <tr><td><code>remap(v, inMin, inMax, outMin, outMax)</code></td><td>Map from one range to another</td></tr>
+    <tr><td><code>roundTo / floorTo / ceilTo(v, step)</code></td><td>Round to step: <code>roundTo(13, 5) → 15</code></td></tr>
+    <tr><td><code>toFixed(v, digits = 2)</code></td><td>Round to decimals (returns a number)</td></tr>
+    <tr><td><code>approx(a, b, eps?)</code></td><td>Approximate equality</td></tr>
+    <tr><td><code>wrap(v, min, max)</code></td><td>Cyclic value in <code>[min, max)</code>: <code>wrap(-1, 0, 5) → 4</code></td></tr>
+    <tr><td><code>randomInt(min, max)</code>, <code>randomFloat(min, max)</code></td><td>Random values (int inclusive)</td></tr>
+    <tr><td><code>distance(x1, y1, x2, y2)</code></td><td>Euclidean distance</td></tr>
+    <tr><td><code>degToRad(d)</code>, <code>radToDeg(r)</code></td><td>Angle conversion</td></tr>
+</table>
+
+<h3>Snapping</h3>
+<div class="sig">snap(value, targets, threshold) <span class="ret">→ { value, snapped, target }</span></div>
+<p>Snaps to the nearest target if it is within <code>threshold</code>. Intended for editor guides.</p>
+<pre><code>MF.Math.snap(13, [0, 15, 408], 4);  // { value: 15, snapped: true, target: 15 }</code></pre>
+
+<h3>Rectangles</h3>
+<p>Rectangles are plain objects <code>{ x, y, width, height }</code>.</p>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>rect(x, y, w, h)</code></td><td>Create</td></tr>
+    <tr><td><code>rectRight(r)</code>, <code>rectBottom(r)</code>, <code>rectCenter(r)</code></td><td>Edges and center</td></tr>
+    <tr><td><code>rectContains(r, px, py)</code></td><td>Point inside</td></tr>
+    <tr><td><code>rectIntersects(a, b)</code></td><td>Overlap test</td></tr>
+    <tr><td><code>rectIntersection(a, b)</code></td><td>Overlap rectangle or <code>null</code></td></tr>
+    <tr><td><code>rectUnion(a, b)</code></td><td>Bounding rectangle</td></tr>
+    <tr><td><code>rectNormalize(r)</code></td><td>Fix negative width/height</td></tr>
+    <tr><td><code>rectClampInside(r, bounds)</code></td><td>Keep inside bounds</td></tr>
+    <tr><td><code>rectEquals(a, b)</code></td><td>Equality</td></tr>
+</table>
+
+<h3>Easing</h3>
+<p>Functions in <code>MF.Math.easing</code> take <code>t</code> in <code>[0, 1]</code>:
+<code>linear</code>, <code>easeInQuad</code>, <code>easeOutQuad</code>, <code>easeInOutQuad</code>, <code>easeInCubic</code>, <code>easeOutCubic</code>, <code>easeInOutCubic</code>, <code>easeInSine</code>, <code>easeOutSine</code>, <code>easeInOutSine</code>, <code>easeOutBack</code>, <code>easeOutBounce</code>.</p>
+<pre><code>MF.Math.ease("easeOutQuad", 0.5);           // 0.75 (t is clamped, unknown name → linear)
+MF.Math.tween(0, 100, 0.5, "easeOutQuad");  // 75</code></pre>
+<table>
+    <tr><th>Member</th><th>Description</th></tr>
+    <tr><td><code>easing</code></td><td>Object of easing functions <code>t =&gt; value</code></td></tr>
+    <tr><td><code>ease(name, t)</code></td><td>Apply an easing by name; <code>t</code> is clamped, unknown names fall back to <code>linear</code></td></tr>
+    <tr><td><code>tween(a, b, t, easing = "linear")</code></td><td>Eased interpolation between <code>a</code> and <code>b</code> (a pure calculation; for animation over frames see <a href="#tween"><code>MF.Tween</code></a>)</td></tr>
+    <tr><td><code>EPSILON</code></td><td><code>1e-6</code>, default tolerance of <code>approx</code></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="units">MF.Units</h2>
+<p>Parses size and position expressions without <code>eval</code>. Compiled expressions are cached.</p>
+<table>
+    <tr><th>Syntax</th><th>Meaning</th></tr>
+    <tr><td><code>240</code>, <code>"240"</code>, <code>"240px"</code></td><td>Pixels</td></tr>
+    <tr><td><code>"50%"</code></td><td>Percent of <code>base</code></td></tr>
+    <tr><td><code>+ - * /</code>, parentheses, unary minus</td><td>Arithmetic: <code>"100%-240"</code>, <code>"(100%-20)/2"</code></td></tr>
+    <tr><td><code>"auto"</code></td><td>Resolved by the <code>auto</code> option</td></tr>
+</table>
+
+<div class="sig">resolve(value, base, options?) <span class="ret">→ number</span></div>
+<table>
+    <tr><th>Option</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>auto</code></td><td>—</td><td>Number or function used for <code>"auto"</code></td></tr>
+    <tr><td><code>fallback</code></td><td><code>0</code></td><td>Used for empty/invalid values (a warning is logged for invalid ones)</td></tr>
+    <tr><td><code>round</code></td><td><code>true</code></td><td>Round the result; pass <code>false</code> to keep fractions</td></tr>
+</table>
+<pre><code>MF.Units.resolve("100%-240", Graphics.boxWidth);                  // 576 at 816
+MF.Units.resolve("(100%-20)/2", 820);                             // 400
+MF.Units.resolve("auto", 0, { auto: () =&gt; win.fittingHeight(4) });
+MF.Units.resolve("50% +", 100, { fallback: 0 });                  // 0 + warning</code></pre>
+
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>isAuto(v)</code></td><td><code>v === "auto"</code></td></tr>
+    <tr><td><code>AUTO</code></td><td>The constant <code>"auto"</code></td></tr>
+    <tr><td><code>isRelative(v)</code></td><td>String containing <code>%</code></td></tr>
+    <tr><td><code>isValid(v)</code></td><td>Syntax check without evaluation</td></tr>
+    <tr><td><code>compile(v)</code></td><td>Returns <code>base =&gt; number</code>; throws on syntax errors</td></tr>
+    <tr><td><code>toPercent(px, base, digits = 2)</code></td><td><code>toPercent(408, 816) → "50%"</code></td></tr>
+</table>
+<p>Division by zero yields <code>0</code>.</p>
+
+<!-- ================================================================== -->
+<h2 id="anchor">MF.Anchor</h2>
+<p>Anchor names: <code>top-left</code> (default), <code>top</code>, <code>top-right</code>, <code>left</code>, <code>center</code>, <code>right</code>, <code>bottom-left</code>, <code>bottom</code>, <code>bottom-right</code>.</p>
+<p>Offsets <code>x</code>/<code>y</code> are measured from the container's anchor point, and the element is aligned by the same point. For example, <code>center</code> with <code>x = 0, y = 0</code> centers the element; <code>bottom-right</code> with <code>x = -10</code> places it 10 px from the right edge.</p>
+
+<div class="sig">toAbsolute(anchor, x, y, width, height, containerW, containerH) <span class="ret">→ { x, y }</span></div>
+<div class="sig">toRelative(anchor, absX, absY, width, height, containerW, containerH) <span class="ret">→ { x, y }</span></div>
+<pre><code>MF.Anchor.toAbsolute("center", 0, 0, 100, 50, 816, 624);        // { x: 358, y: 287 }
+MF.Anchor.toRelative("bottom-right", 716, 574, 100, 50, 816, 624); // { x: 0, y: 0 }</code></pre>
+<table>
+    <tr><th>Member</th><th>Description</th></tr>
+    <tr><td><code>names()</code></td><td>All nine anchor names</td></tr>
+    <tr><td><code>isValid(name)</code></td><td>Known anchor name</td></tr>
+    <tr><td><code>factors(name)</code></td><td><code>[ax, ay]</code> in 0..1, e.g. <code>center → [0.5, 0.5]</code> (unknown → default)</td></tr>
+    <tr><td><code>DEFAULT</code></td><td><code>"top-left"</code></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="color">MF.Color</h2>
+<p>Accepted inputs: <code>#rgb</code>, <code>#rgba</code>, <code>#rrggbb</code>, <code>#rrggbbaa</code>, <code>rgb(r, g, b)</code>, <code>rgba(r, g, b, a)</code>, or an object <code>{ r, g, b, a? }</code>.</p>
+<table>
+    <tr><th>Function</th><th>Result</th></tr>
+    <tr><td><code>parse(c)</code></td><td><code>{ r, g, b, a }</code> (a in 0..1) or <code>null</code></td></tr>
+    <tr><td><code>isValid(c)</code></td><td>boolean</td></tr>
+    <tr><td><code>toHex(c, withAlpha = false)</code></td><td><code>"#ff0010"</code></td></tr>
+    <tr><td><code>toRgba(c)</code></td><td><code>"rgba(255, 0, 16, 1)"</code> — usable as a Bitmap color</td></tr>
+    <tr><td><code>toNumber(c)</code></td><td><code>0xRRGGBB</code> for PIXI <code>tint</code> (invalid → white)</td></tr>
+    <tr><td><code>lerp(a, b, t)</code></td><td>Blended <code>rgba()</code> string</td></tr>
+    <tr><td><code>withAlpha(c, a)</code></td><td>Same color with new alpha</td></tr>
+    <tr><td><code>toTone(c, gray = 0)</code></td><td><code>[r, g, b, gray]</code> for <code>setColorTone</code> / <code>setBlendColor</code></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="hook">MF.Hook</h2>
+<p>Standardized method overriding with a registry of who hooked what.</p>
+
+<div class="sig">alias(target, name, wrapper, owner) <span class="ret">→ boolean</span></div>
+<p><code>wrapper(original, ...args)</code> is called with the object's <code>this</code>. Calling <code>original()</code> without arguments passes the original arguments; pass arguments explicitly to change them.</p>
+<p>If the method is <strong>inherited</strong> (e.g. <code>Window_Message.prototype.processCharacter</code> comes from <code>Window_Base</code>), <code>original()</code> calls the parent's implementation <em>as it is at call time</em>, so a plugin that patches <code>Window_Base</code> later is not bypassed — a classic MZ plugin-order bug.</p>
+<pre><code>MF.Hook.alias(Scene_Menu.prototype, "create", function(orig) {
+    orig();
+    this.addChild(new Sprite());
+}, "MF_UIEditor");</code></pre>
+
+<div class="sig">before(target, name, fn, owner, options?) <span class="ret">→ boolean</span></div>
+<p>Calls <code>fn(...args)</code> first. Returning <code>false</code> skips the original.</p>
+
+<div class="sig">after(target, name, fn, owner, options?) <span class="ret">→ boolean</span></div>
+<p>Calls <code>fn(result, ...args)</code> after the original. Returning anything other than <code>undefined</code> replaces the result.</p>
+
+<h3 id="hook-safe">Error policy and <code>safe</code> mode</h3>
+<p>By default errors propagate, like any MZ alias: the game shows the error screen, which is what you want for bugs in core logic. This is deliberate — unlike event listeners, hooks are part of the engine's control flow, and silently swallowing an error there could leave a scene half-initialized.</p>
+<p><code>{ safe: true }</code> (for <code>before</code> / <code>after</code>) isolates errors thrown by <code>fn</code> itself: they are logged once per hook, and the original behavior/result is kept. Errors from the original method or other plugins in the chain are <strong>never</strong> swallowed.</p>
+<pre><code>// A cosmetic extension must never break the menu
+MF.Hook.after(Scene_Menu.prototype, "create", function() {
+    this.addDecorations();
+}, "MF_Decor", { safe: true });</code></pre>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>Use <code>safe</code> only for optional, cosmetic additions — it hides errors of your function. <code>alias</code> has no safe mode because the wrapper controls the original call. <a class="more" href="#pitfall-hook-errors">More</a></div>
+
+<div class="sig">list() <span class="ret">→ Array&lt;{ name, owner }&gt;</span></div>
+<p>Installed hooks, for compatibility debugging.</p>
+
+<!-- ================================================================== -->
+<h2 id="events">MF.Events</h2>
+<div class="sig">new MF.Events.EventEmitter()</div>
+<div class="sig">MF.Events.bus <span class="ret">— global EventEmitter shared by all MF_* plugins</span></div>
+<pre><code>const emitter = new MF.Events.EventEmitter();
+const off = emitter.on("change", (a, b) =&gt; { … }, context);  // returns an unsubscribe function
+emitter.once("ready", fn);
+emitter.emit("change", 1, 2);   // → true if there were listeners
+emitter.off("change", fn);      // remove one listener
+emitter.off("change");          // remove all listeners of an event
+emitter.off();                  // remove everything
+emitter.listenerCount("change");
+off();</code></pre>
+<p>Listener errors are caught and logged so one broken listener does not stop the others. The global bus is <code>MF.Events.bus</code> — see <a href="#bus-events">Bus events</a>.</p>
+
+<!-- ================================================================== -->
+<h2 id="deprecation">MF.Deprecation</h2>
+<p>Tools for the <a href="#versioning">deprecation lifecycle</a>. Every deprecated API is reported once per session (console warning + <code>mf:deprecated</code> bus event); further calls are counted.</p>
+
+<div class="sig">method(obj, oldName, info) <span class="ret">→ boolean</span></div>
+<p>With <code>info.fn</code> — <code>obj[oldName]</code> becomes a redirect to <code>info.fn</code> (renamed API). Without it — the existing <code>obj[oldName]</code> is wrapped (API scheduled for removal).</p>
+<div class="sig">property(obj, oldName, newName, info?) <span class="ret">→ boolean</span></div>
+<p>Redirects get/set of <code>obj[oldName]</code> to <code>obj[newName]</code>.</p>
+<div class="sig">warn(id, info?)</div>
+<p>Manual report, e.g. for a deprecated option value or data format.</p>
+<div class="sig">list() <span class="ret">→ Array&lt;{ id, since, removeIn, replacement, owner, note, count }&gt;</span></div>
+
+<table>
+    <tr><th><code>info</code> field</th><th>Description</th></tr>
+    <tr><td><code>id</code></td><td>Display name, e.g. <code>"MF.Utils.oldName"</code> (default: <code>oldName</code>)</td></tr>
+    <tr><td><code>since</code></td><td>Version in which the API was deprecated</td></tr>
+    <tr><td><code>removeIn</code></td><td>Version in which it will be removed</td></tr>
+    <tr><td><code>replacement</code></td><td>What to use instead</td></tr>
+    <tr><td><code>owner</code></td><td>Plugin name (default <code>MF_Core</code>) — other MF_* plugins can use the same tool</td></tr>
+    <tr><td><code>note</code></td><td>Extra text</td></tr>
+    <tr><td><code>fn</code></td><td>(<code>method</code> only) new implementation</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="schema">MF.Schema</h2>
+<p>Validates and normalizes structured data: plugin parameters (<code>@type struct</code>), layout files, config values.</p>
+<pre><code>const schema = {
+    type: "object",
+    properties: {
+        count:  { type: "integer", min: 1, max: 10, default: 3 },
+        mode:   { type: "string", enum: ["fast", "slow"], required: true },
+        size:   { type: "units", default: "100%" },
+        anchor: { type: "anchor", default: "center" },
+        tint:   { type: "color", nullable: true },
+        items:  { type: "array", items: { type: "number" }, default: [] }
+    },
+    additionalProperties: false
+};
+
+MF.Schema.validate(data, schema);   // { ok, errors: [{ path: "items[1]", message: "must be a number" }] }
+MF.Schema.normalize(data, schema);  // { ok, value, errors } — defaults applied, "12" → 12, "true" → true
+MF.Schema.assert(data, schema, "MF_QuestLog parameters");  // value, or throws listing all problems</code></pre>
+
+<div class="sig">validate(value, schema) <span class="ret">→ { ok, errors: [{ path, message }] }</span></div>
+<p>Validation only; the value is not changed.</p>
+<div class="sig">normalize(value, schema) <span class="ret">→ { ok, value, errors }</span></div>
+<p>Validation plus defaults and coercion of string values (<code>"12"</code> → 12, <code>"true"</code> → true, JSON strings → objects). The input is not mutated.</p>
+<div class="sig">assert(value, schema, label?) <span class="ret">→ normalized value</span></div>
+<p>Like <code>normalize</code>, but throws an <code>Error</code> listing all problems.</p>
+
+<h3>Schema fields</h3>
+<table>
+    <tr><th>Field</th><th>Applies to</th><th>Description</th></tr>
+    <tr><td><code>type</code></td><td>all</td><td><code>any</code> (default), <code>number</code>, <code>integer</code>, <code>string</code>, <code>boolean</code>, <code>array</code>, <code>object</code>, <code>units</code>, <code>color</code>, <code>anchor</code>, <code>condition</code>, or a registered type</td></tr>
+    <tr><td><code>default</code></td><td>all</td><td>Value or factory function; applied by <code>normalize</code> when the value is missing</td></tr>
+    <tr><td><code>required</code></td><td>object properties</td><td>Missing value is an error</td></tr>
+    <tr><td><code>nullable</code></td><td>all</td><td><code>null</code> is allowed</td></tr>
+    <tr><td><code>enum</code></td><td>all</td><td>Allowed values (deep equality)</td></tr>
+    <tr><td><code>oneOf</code></td><td>all</td><td>Alternative schemas; the first that matches wins</td></tr>
+    <tr><td><code>validate</code></td><td>all</td><td><code>fn(value) → true | "error message"</code></td></tr>
+    <tr><td><code>coerce</code></td><td>all</td><td><code>false</code> disables string coercion in <code>normalize</code></td></tr>
+    <tr><td><code>min</code>, <code>max</code></td><td>number, integer</td><td>Range</td></tr>
+    <tr><td><code>minLength</code>, <code>maxLength</code>, <code>pattern</code></td><td>string</td><td>Length, RegExp or string pattern</td></tr>
+    <tr><td><code>items</code>, <code>minItems</code>, <code>maxItems</code></td><td>array</td><td>Item schema and size</td></tr>
+    <tr><td><code>properties</code>, <code>additionalProperties</code></td><td>object</td><td>Property schemas; unknown keys: <code>true</code> (kept, default), <code>false</code> (error) or a schema</td></tr>
+</table>
+
+<div class="sig">register(type, handler(value, schema, ctx))</div>
+<p>Custom type. Report problems with <code>ctx.error(message)</code>, validate nested values with <code>ctx.child(value, schema, key)</code>, return a normalized value or <code>undefined</code>.</p>
+<pre><code>MF.Schema.register("actorId", (v, s, ctx) =&gt; {
+    if (!Number.isInteger(v) || !$dataActors[v]) ctx.error(`unknown actor ${v}`);
+});</code></pre>
+<div class="sig">format(errors) <span class="ret">→ string</span></div>
+
+<!-- ================================================================== -->
+<h2 id="condition">MF.Condition</h2>
+<div class="sig">evaluate(cond, context?) <span class="ret">→ boolean</span></div>
+<p><code>null</code>, <code>undefined</code> and <code>true</code> are true; an array is treated as <code>all</code>.</p>
+<table>
+    <tr><th>Condition</th><th>True when</th></tr>
+    <tr><td><code>{ switch: 1 }</code></td><td>Switch 1 is ON (<code>value: false</code> → OFF)</td></tr>
+    <tr><td><code>{ variable: 5, op: "&gt;=", value: 3 }</code></td><td>Variable comparison; <code>valueVariable: n</code> compares with another variable. Operators: <code>== != &gt; &gt;= &lt; &lt;=</code> (default <code>==</code>, strict)</td></tr>
+    <tr><td><code>{ selfSwitch: [mapId, eventId, "A"] }</code></td><td>Self switch is ON (<code>value: false</code> → OFF)</td></tr>
+    <tr><td><code>{ partyHas: 3 }</code></td><td>Actor 3 is in the party</td></tr>
+    <tr><td><code>{ item: 7, count: 2 }</code></td><td>Party has at least 2 of item 7 (also <code>weapon</code>, <code>armor</code>; default count 1)</td></tr>
+    <tr><td><code>{ gold: 100, op: "&gt;=" }</code></td><td>Gold comparison (default <code>&gt;=</code>)</td></tr>
+    <tr><td><code>{ script: "…" }</code></td><td>Script returns truthy — requires <a href="#script">Allow Scripts</a></td></tr>
+    <tr><td><code>{ all: [...] }</code>, <code>{ any: [...] }</code>, <code>{ not: {...} }</code></td><td>Logical combinations</td></tr>
+</table>
+<pre><code>MF.Condition.evaluate({ all: [
+    { switch: 1 },
+    { variable: 5, op: "&gt;=", value: 3 },
+    { not: { partyHas: 2 } }
+]});</code></pre>
+<p>Unknown conditions and handler errors evaluate to <code>false</code> and are logged <strong>once</strong> per unique condition (conditions are often evaluated every frame).</p>
+
+<div class="sig">register(key, fn(cond, context))</div>
+<p>Adds a condition type detected by the presence of <code>key</code>:</p>
+<pre><code>MF.Condition.register("level", c =&gt; $gameParty.leader().level &gt;= c.level);
+MF.Condition.evaluate({ level: 10 });</code></pre>
+
+<div class="sig">dependencies(cond) <span class="ret">→ { switches: Set, variables: Set }</span></div>
+<p>Switch and variable ids a condition depends on — lets UIs refresh on change instead of every frame.</p>
+
+<div class="sig">compare(a, op, b) <span class="ret">→ boolean</span></div>
+
+<!-- ================================================================== -->
+<h2 id="script">MF.Script</h2>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>Disabled by default: script conditions are <code>false</code> until <em>Allow Scripts</em> is on (warning logged once). <a class="more" href="#pitfall-script">More</a></div>
+<div class="sig">run(code, context?, fallback?) <span class="ret">→ any</span></div>
+<p><code>code</code> is an expression (<code>"a + b"</code>) or a block with <code>return</code>. Keys of <code>context</code> are available as variables; <code>context.self</code> becomes <code>this</code>. Compiled functions are cached.</p>
+<pre><code>MF.Script.run("a + b", { a: 1, b: 2 });                 // 3
+MF.Script.run("const x = a * 2; return x;", { a: 4 });  // 8</code></pre>
+
+<h3>When scripts are disabled</h3>
+<p>With <code>Allow Scripts = false</code>, <code>run</code> returns <code>fallback</code> (for conditions: <code>false</code>). To avoid the "condition silently doesn't work" trap:</p>
+<ul>
+    <li>a warning with the code and the parameter name is logged <strong>once</strong> per snippet;</li>
+    <li>the bus event <code>mf:scriptBlocked</code> is emitted once per snippet;</li>
+    <li><code>issues()</code> lists all blocked/failed snippets with occurrence counts.</li>
+</ul>
+<p>Runtime errors behave the same way (<code>mf:scriptError</code>, logged once).</p>
+
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>isAllowed()</code></td><td>Value of the <code>allowScript</code> parameter</td></tr>
+    <tr><td><code>validate(code, argNames?)</code></td><td><code>{ ok }</code> or <code>{ ok: false, message }</code>. Syntax check without execution; works even when scripts are disabled — editors should use it to warn authors up front</td></tr>
+    <tr><td><code>compile(code, argNames?)</code></td><td>Cached <code>Function</code>; throws on syntax errors</td></tr>
+    <tr><td><code>issues()</code></td><td><code>[{ type: "blocked" | "error", code, message, count }]</code></td></tr>
+    <tr><td><code>clearIssues()</code></td><td>Reset the list (and allow the warnings to be logged again)</td></tr>
+</table>
+<div class="warn">Scripts run with full access to the game and, in NW.js, to Node APIs. Only enable them for data you author yourself.</div>
+
+<!-- ================================================================== -->
+<h2 id="fs">MF.FS</h2>
+<p>Relative paths are resolved from the project root (the folder containing <code>index.html</code>).</p>
+
+<h3>NW.js only</h3>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>isAvailable()</code></td><td>Node file system is accessible</td></tr>
+    <tr><td><code>projectRoot()</code></td><td>Absolute project root (cached)</td></tr>
+    <tr><td><code>resolve(relPath)</code></td><td>Absolute path</td></tr>
+    <tr><td><code>exists(relPath)</code></td><td>File exists</td></tr>
+    <tr><td><code>ensureDir(relDir)</code></td><td>Create directory recursively</td></tr>
+    <tr><td><code>readText(relPath)</code> / <code>readJson(relPath, fallback)</code></td><td>Synchronous read; <code>null</code>/<code>fallback</code> if missing or invalid</td></tr>
+    <tr><td><code>writeText(relPath, text, options)</code> / <code>writeJson(relPath, data, options)</code></td><td>Atomic write (temp file → rename). <code>backup: true</code> keeps the previous version as <code>name.bak.json</code>; <code>indent</code> (default 2) for JSON. Returns boolean</td></tr>
+    <tr><td><code>remove(relPath)</code></td><td>Delete file</td></tr>
+    <tr><td><code>listFiles(relDir, extension?)</code></td><td>File names in a directory</td></tr>
+</table>
+<p><code>projectRoot()</code> tries, in order: <code>process.mainModule.filename</code> (what MZ core uses; deprecated in newer Node), the <code>file://</code> page location, then <code>process.cwd()</code>.</p>
+
+<h3>Everywhere</h3>
+<div class="sig">loadJson(url) <span class="ret">→ Promise&lt;any&gt;</span></div>
+<p>Rejected errors carry <code>err.code</code>:</p>
+<table>
+    <tr><th>code</th><th>Meaning</th></tr>
+    <tr><td><code>notFound</code></td><td>404, empty <code>file://</code> response or network error</td></tr>
+    <tr><td><code>http</code></td><td>Other HTTP error status</td></tr>
+    <tr><td><code>parse</code></td><td>File exists but contains invalid JSON</td></tr>
+</table>
+<div class="sig">download(filename, text, mime?)</div>
+<p>Triggers a browser download.</p>
+<div class="sig">saveJson(relPath, data, options?) <span class="ret">→ boolean</span></div>
+<p>Writes via <code>fs</code> when available, otherwise downloads the file.</p>
+
+<!-- ================================================================== -->
+<h2 id="data">MF.Data</h2>
+<p>Registers extra JSON files that are loaded together with the database (<code>DataManager.loadDatabase</code>). The game does not start until they are loaded.</p>
+
+<div class="sig">register(globalName, src, options?)</div>
+<table>
+    <tr><th>Option</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>optional</code></td><td><code>true</code></td><td>A missing file is not an error</td></tr>
+    <tr><td><code>default</code></td><td><code>{}</code></td><td>Value used when an optional file is missing or invalid (cloned)</td></tr>
+    <tr><td><code>onLoad</code></td><td>—</td><td><code>data =&gt; data</code> post-processing (migrations, validation). Throwing marks the file as invalid</td></tr>
+</table>
+<pre><code>MF.Data.register("$dataUILayouts", "UILayouts.json", {
+    optional: true,
+    default: { version: 1, scenes: {} },
+    onLoad: data =&gt; MF.Migration.migrate("UILayouts", data, 1)
+});</code></pre>
+
+<h3 id="data-errors">Error handling</h3>
+<table>
+    <tr><th>Situation</th><th>Result</th></tr>
+    <tr><td>Optional, file missing</td><td>Default value, debug log only</td></tr>
+    <tr><td>Optional, invalid JSON / HTTP error / <code>onLoad</code> threw</td><td>Default value, <strong>console error</strong>, <code>status().error</code> set, <code>usedDefault = true</code>, <code>mf:dataError</code> emitted</td></tr>
+    <tr><td>Required, any error</td><td>Standard MZ load error screen with <em>Retry</em>. The database is <strong>not</strong> reported as loaded until the file loads successfully</td></tr>
+</table>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>An editor must check <code>MF.Data.status(name)</code> before saving. If the file failed to parse, the global holds the default value, and saving would overwrite the user's (broken but recoverable) file. Use <code>writeJson(…, { backup: true })</code> in any case — or <a href="#document"><code>MF.Document</code></a>, which does all of this. <a class="more" href="#pitfall-optional-data">More</a></div>
+
+<div class="sig">status(globalName) <span class="ret">→ { state, error, usedDefault } | null</span></div>
+<p><code>state</code>: <code>idle</code> | <code>pending</code> | <code>loaded</code> | <code>failed</code>. <code>error</code>: <code>{ code, message }</code> or <code>null</code>; codes are those of <a href="#fs"><code>loadJson</code></a> plus <code>process</code> (<code>onLoad</code> threw).</p>
+
+<div class="sig">reload(globalName) <span class="ret">→ Promise&lt;value&gt;</span></div>
+<p>Reloads a file (e.g. after saving in the editor). Rejects on any error except "optional file not found"; the rejected error has <code>code</code>.</p>
+
+<div class="sig">isLoaded() <span class="ret">→ boolean</span></div>
+<div class="sig">checkError()</div>
+<p>Throws a pending required-file error in the <code>["LoadError", url, retry]</code> format expected by <code>SceneManager</code>. Called automatically from <code>DataManager.isDatabaseLoaded</code>.</p>
+
+<!-- ================================================================== -->
+<h2 id="save">MF.Save</h2>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>Store plain JSON-like data only; module-level variables are not saved at all. <a class="more" href="#pitfall-save-plain">More</a></div>
+<p>Plugin state stored <strong>inside the player's save file</strong> — no manual patching of <code>DataManager.makeSaveContents</code> / <code>extractSaveContents</code>. Data lives under <code>contents.mf[key] = { v, data }</code>.</p>
+<pre><code>MF.Save.register("MF_QuestLog", {
+    default: () =&gt; ({ quests: {}, tracked: null }),
+    version: 2,
+    migrate: (data, fromVersion) =&gt; {
+        if (fromVersion &lt; 2) data.tracked = null;
+        return data;
+    }
+});
+
+const state = MF.Save.get("MF_QuestLog");   // mutable reference
+state.quests.q1 = { stage: 2 };</code></pre>
+
+<div class="sig">MF.Save.register(key, options?)</div>
+<p>Registers a save slot for a plugin (use the plugin name as key). Call at plugin load time.</p>
+<table>
+    <tr><th>Option</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>default</code></td><td><code>{}</code></td><td>Value (cloned) or factory. Used for a new game and for saves without this key</td></tr>
+    <tr><td><code>version</code></td><td><code>1</code></td><td>Data format version written into the save</td></tr>
+    <tr><td><code>migrate(data, fromVersion)</code></td><td>—</td><td>Called when the save has an older version</td></tr>
+    <tr><td><code>mergeDefaults</code></td><td><code>true</code></td><td>Deep-merge defaults under loaded plain-object data, so new fields appear in old saves</td></tr>
+    <tr><td><code>onSave(data)</code></td><td>—</td><td>Before writing; return a value to store instead</td></tr>
+    <tr><td><code>onLoad(data)</code></td><td>—</td><td>After reading, migration and merging</td></tr>
+</table>
+
+<table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>get(key)</code></td><td>Current data (created from default if needed)</td></tr>
+    <tr><td><code>set(key, value)</code></td><td>Replace data</td></tr>
+    <tr><td><code>reset(key)</code></td><td>Back to default</td></tr>
+    <tr><td><code>isRegistered(key)</code>, <code>keys()</code></td><td>Registry</td></tr>
+</table>
+
+<h3>Lifecycle</h3>
+<table>
+    <tr><th>Engine call</th><th>MF.Save</th></tr>
+    <tr><td><code>DataManager.createGameObjects</code> (new game, battle/event test, before loading)</td><td>All keys reset to defaults</td></tr>
+    <tr><td><code>DataManager.makeSaveContents</code></td><td>Data written to <code>contents.mf</code></td></tr>
+    <tr><td><code>DataManager.extractSaveContents</code></td><td>Data read, migrated, merged; <code>mf:saveLoaded</code> emitted</td></tr>
+</table>
+<ul>
+    <li><strong>Disabled plugins:</strong> data of keys that are not registered is kept and written back, so temporarily disabling a plugin does not wipe its progress.</li>
+    <li><strong>Errors</strong> in <code>migrate</code>/<code>onLoad</code> keep the raw data (defaults would destroy it on the next save), log an error and emit <code>mf:saveError</code>.</li>
+    <li><strong>Newer save</strong> (version above the registered one): warning, data kept as is.</li>
+    <li>Store plain JSON-like data. Class instances survive only if their constructor is a global (normal MZ <code>JsonEx</code> rules).</li>
+</ul>
+
+<!-- ================================================================== -->
+<h2 id="config">MF.Config</h2>
+<p>Global settings (not per save) stored in <code>config.rmmzsave</code> under <code>config.mf</code> — e.g. UI theme, window opacity, language.</p>
+<pre><code>MF.Config.register("MF_UIEditor.theme", "default");
+MF.Config.register("MF_UIEditor.opacity", 192, { schema: { type: "integer", min: 0, max: 255 } });
+
+MF.Config.get("MF_UIEditor.opacity");               // 192
+MF.Config.set("MF_UIEditor.opacity", 128, { save: true });</code></pre>
+<table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>register(key, default, { schema? })</code></td><td>Stored values failing the schema fall back to the default (warning)</td></tr>
+    <tr><td><code>get(key)</code></td><td>Current value</td></tr>
+    <tr><td><code>set(key, value, { save? })</code></td><td>Emits <code>mf:configChanged (key, value, old)</code> when changed; <code>save: true</code> writes the config file</td></tr>
+    <tr><td><code>reset(key, { save? })</code></td><td>Back to default</td></tr>
+    <tr><td><code>save()</code></td><td><code>ConfigManager.save()</code></td></tr>
+    <tr><td><code>isRegistered(key)</code>, <code>keys()</code></td><td>Registry</td></tr>
+</table>
+<p>Use <code>PluginName.setting</code> keys. Unknown keys are preserved. Reserved key: <code>MF_Core.locale</code> (see <a href="#i18n">I18n</a>).</p>
+
+<!-- ================================================================== -->
+<h2 id="migration">MF.Migration</h2>
+<div class="sig">register(key, fromVersion, fn)</div>
+<p>Registers a step from <code>fromVersion</code> to <code>fromVersion + 1</code>. <code>fn(data)</code> may mutate and/or return the data.</p>
+<div class="sig">migrate(key, data, targetVersion) <span class="ret">→ data</span></div>
+<p>Applies steps using <code>data.version</code> (missing → 0) and updates it. Stops with a warning if a step is missing.</p>
+<pre><code>MF.Migration.register("UILayouts", 1, data =&gt; {
+    data.themes = data.themes || {};
+    return data;
+});
+MF.Migration.migrate("UILayouts", { version: 1 }, 2);  // { version: 2, themes: {} }</code></pre>
+
+<!-- ================================================================== -->
+<h2 id="history">MF.History</h2>
+<p>Undo/Redo stack. Extends <code>EventEmitter</code> and emits <code>"change"</code> on every modification.</p>
+<p>A command is <code>{ label?, do(), undo(), merge?(next) }</code>. <code>merge</code> may absorb the next command (e.g. consecutive drag steps) and return <code>true</code>; commands are never merged across a save point.</p>
+<pre><code>const history = new MF.History(100);   // depth limit
+
+history.execute({
+    label: "move",
+    do()   { win.x = 100; },
+    undo() { win.x = 0; }
+});
+
+history.beginBatch();
+/* several history.execute(...) */
+history.endBatch("align");             // one undo entry
+
+history.undo(); history.redo();
+history.canUndo(); history.canRedo();
+history.markSaved(); history.isDirty();
+history.clear();
+history.on("change", updateToolbar);</code></pre>
+<table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>execute(cmd)</code></td><td>Runs <code>cmd.do()</code> and records it</td></tr>
+    <tr><td><code>push(cmd)</code></td><td>Records an already executed command</td></tr>
+    <tr><td><code>beginBatch()</code> / <code>endBatch(label)</code></td><td>Group commands into one entry</td></tr>
+    <tr><td><code>undo()</code> / <code>redo()</code></td><td>Return <code>false</code> when there is nothing to do</td></tr>
+    <tr><td><code>markSaved()</code> / <code>isDirty()</code></td><td>Unsaved changes tracking</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="document">MF.Document <span class="tag">experimental</span></h2>
+<p>The editor workflow in one object: <a href="#history">History</a> (undo/redo) + <a href="#schema">Schema</a> (validation before writing) + <a href="#fs">FS</a> (atomic save with backup) + <a href="#data">Data</a> (runtime global) + <a href="#migration">Migration</a>. A UI editor edits a document instead of wiring these modules by hand.</p>
+<pre><code>const doc = new MF.Document({
+    path: "data/UILayouts.json",        // file to edit
+    global: "$dataUILayouts",           // MF.Data global, updated on save
+    schema: layoutSchema,               // validated on load (defaults) and before save
+    version: 1, migrationKey: "UILayouts",
+    initial: () =&gt; ({ version: 1, scenes: {} }),
+    historyLimit: 200,
+    autosave: false                     // or debounce time in ms
+}).load();
+
+// Dragging: every frame sets x; one undo step thanks to the merge key
+drag.onMove = c =&gt; doc.set("scenes.Scene_Menu.windows._goldWindow.x", baseX + c.dx, { merge: "drag-gold" });
+
+doc.transaction("Align left", d =&gt; {
+    d.set("scenes.Scene_Menu.windows._goldWindow.x", 0);
+    d.set("scenes.Scene_Menu.windows._commandWindow.x", 0);
+});
+
+if (MF.Input.isShortcut("Mod+Z")) doc.undo();
+if (MF.Input.isShortcut("Mod+S")) {
+    const r = doc.save();
+    if (!r.ok) showErrors(r.reason, r.errors || r.error);
+}</code></pre>
+
+<h3>Loading</h3>
+<p><code>load()</code> reads, in order: the file (NW.js) → the runtime global (browser; ignored if it holds only the default) → <code>initial()</code>. Then migration and schema normalization (defaults) are applied and the history is cleared.</p>
+<div class="warn">If the file exists but is not valid JSON, <code>loadError</code> is set, <code>data</code> falls back to <code>initial()</code>, and <code>save()</code> refuses with <code>reason: "loadError"</code> unless called with <code>{ force: true }</code>. The user's broken file is never overwritten silently.</div>
+
+<h3>Methods</h3>
+<table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>load()</code>, <code>revert()</code></td><td>(Re)load, discarding unsaved changes</td></tr>
+    <tr><td><code>get(path, fallback?)</code>, <code>has(path)</code></td><td>Read (returns a copy)</td></tr>
+    <tr><td><code>set(path, value, { label?, merge? })</code></td><td>Undoable write. Consecutive <code>set</code> calls on the same path with the same <code>merge</code> key form one undo step. No-op (returns <code>false</code>) if the value is unchanged</td></tr>
+    <tr><td><code>remove(path, { label? })</code></td><td>Undoable delete</td></tr>
+    <tr><td><code>update(path, fn, options?)</code></td><td><code>set(path, fn(copy))</code></td></tr>
+    <tr><td><code>transaction(label, fn(doc))</code></td><td>Several edits → one undo step</td></tr>
+    <tr><td><code>undo()</code>, <code>redo()</code>, <code>canUndo()</code>, <code>canRedo()</code>, <code>isDirty()</code></td><td>History</td></tr>
+    <tr><td><code>validate()</code></td><td><code>{ ok, errors }</code></td></tr>
+    <tr><td><code>save({ force? })</code></td><td>→ <code>{ ok }</code> or <code>{ ok: false, reason: "invalid" | "loadError" | "writeFailed", errors?, error? }</code>. Writes atomically with <code>*.bak.json</code> backup (NW.js) or downloads the file (browser), updates the global, marks history as saved</td></tr>
+</table>
+<p>Properties: <code>data</code>, <code>loadError</code>, <code>history</code>, <code>path</code>, <code>global</code>, <code>schema</code>. Events: <code>load (data, loadError)</code>, <code>change (path, value)</code>, <code>dirty (isDirty)</code>, <code>save (data)</code>, <code>saveFailed (reason, details)</code>.</p>
+
+<!-- ================================================================== -->
+<h2 id="i18n">MF.I18n</h2>
+<p>Namespaced translations. Keys are <code>"namespace:path.to.key"</code>.</p>
+<pre><code>MF.I18n.register("MF_QuestLog", {
+    en: {
+        title: "Quests",
+        greet: "Hello, {name}!",
+        count: { zero: "No quests", one: "{count} quest", other: "{count} quests" }
+    },
+    ru: {
+        title: "Задания",
+        count: { one: "{count} задание", few: "{count} задания", many: "{count} заданий", other: "{count} задания" }
+    }
+});
+
+const t = MF.I18n.translator("MF_QuestLog");
+t("title");                   // "Задания" (locale ru-RU)
+t("count", { count: 5 });     // "5 заданий"
+t("greet", { name: "Reid" }); // "Hello, Reid!" — falls back to en
+MF.I18n.t("MF_QuestLog:title");</code></pre>
+
+<h3>Locale</h3>
+<p>Current locale, by priority: <code>setLocale()</code> → player choice saved in config (<code>MF_Core.locale</code>) → <code>$dataSystem.locale</code> → browser language → <code>fallbackLocale</code> (<code>"en"</code>). Locale names are normalized: <code>ru_RU</code> → <code>ru-RU</code>.</p>
+<p>Lookup chain: <code>ru-RU</code> → <code>ru</code> → <code>en</code>.</p>
+
+<h3>Plural forms</h3>
+<p>If the value is an object and <code>params.count</code> is a number, the form is chosen with <code>Intl.PluralRules</code> of the matched locale (<code>zero</code>, <code>one</code>, <code>two</code>, <code>few</code>, <code>many</code>, <code>other</code>). <code>zero</code> is used for <code>0</code> when present; <code>other</code> is the fallback.</p>
+
+<table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>register(namespace, { locale: dict })</code></td><td>Deep-merges into existing translations</td></tr>
+    <tr><td><code>load(namespace, locale, url)</code></td><td>Loads a JSON dictionary → Promise</td></tr>
+    <tr><td><code>t(key, params?, { fallback? })</code></td><td>Missing key → <code>fallback</code> or the key itself; warned once</td></tr>
+    <tr><td><code>translator(namespace)</code></td><td>Shortcut function</td></tr>
+    <tr><td><code>has(key)</code></td><td>Exists in the lookup chain</td></tr>
+    <tr><td><code>locale()</code>, <code>detectLocale()</code>, <code>chain()</code>, <code>locales()</code></td><td>Locale info</td></tr>
+    <tr><td><code>setLocale(locale, { persist? })</code></td><td><code>null</code> resets to automatic. Emits <code>mf:localeChanged (locale, old)</code></td></tr>
+    <tr><td><code>missing()</code></td><td>Keys reported missing in this session</td></tr>
+    <tr><td><code>fallbackLocale</code></td><td>Property, default <code>"en"</code></td></tr>
+</table>
+<div class="note">Translated strings may contain MZ escape codes (<code>\C[2]</code>, <code>\V[1]</code>) — they are left untouched for <code>drawTextEx</code>.</div>
+
+<!-- ================================================================== -->
+<h2 id="text">MF.Text</h2>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>In JavaScript strings write <code>"\\C[2]"</code>; in the event editor <code>\C[2]</code>. <a class="more" href="#pitfall-backslash">More</a></div>
+<p>Extends RPG Maker's text system (all windows using <code>drawTextEx</code>, including <code>Window_Message</code>) with custom escape codes, plus Promise-based messages for visual-novel style plugins.</p>
+
+<h3>Built-in codes</h3>
+<table>
+    <tr><th>Code</th><th>Kind</th><th>Effect</th></tr>
+    <tr><td><code>\TR[ns:key]</code></td><td>macro</td><td><a href="#i18n">I18n</a> translation (may contain other codes)</td></tr>
+    <tr><td><code>\SAVE[key:path]</code></td><td>macro</td><td>Value from <a href="#save">MF.Save</a> data, e.g. <code>\SAVE[MF_QuestLog:stats.done]</code></td></tr>
+    <tr><td><code>\W[n]</code></td><td>escape</td><td>Wait n frames (message window)</td></tr>
+    <tr><td><code>\SE[name,volume,pitch,pan]</code></td><td>escape</td><td>Play a sound effect at this point of the text (message window)</td></tr>
+    <tr><td><code>\FACE[name,index]</code></td><td>escape</td><td>Change the face mid-message; text pauses until it is loaded; <code>\FACE[]</code> removes it (message window)</td></tr>
+    <tr><td><code>\SPD[n]</code></td><td>escape</td><td>n extra frames per character until the end of the message; <code>\SPD[0]</code> = normal; skipped by fast-forward (message window)</td></tr>
+</table>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span><code>\FACE</code> does not move text: start the message with a face (or reserve space) if faces are switched later. <a class="more" href="#pitfall-face">More</a></div>
+
+<h3>Custom codes</h3>
+<p>Names are letters only (RPG Maker parses codes as <code>[A-Z]+</code>) and cannot be the reserved <code>V N P G C I PX PY FS</code>.</p>
+<div class="sig">registerMacro(name, fn(arg, window) → string)</div>
+<p>Text replacement <strong>before</strong> RPG Maker's conversion, so the result may contain <code>\C[n]</code>, <code>\V[n]</code> and other macros (expanded up to 10 levels). Parameters cannot contain <code>]</code>.</p>
+<pre><code>MF.Text.registerMacro("QUEST", id =&gt; MF.Save.get("MF_QuestLog").quests[id]?.title || "???");
+// "Current quest: \QUEST[q1]"</code></pre>
+
+<div class="sig">registerEscape(name, fn(ctx))</div>
+<p>Executed while the text is processed. <code>ctx</code>: <code>{ code, param, args, textState, window, drawing, isMessage }</code>.</p>
+<pre><code>MF.Text.registerEscape("SHAKE", ctx =&gt; {
+    if (!ctx.drawing || !ctx.isMessage) return;        // no side effects while measuring text!
+    $gameScreen.startShake(Number(ctx.args[0]) || 5, 5, 20);
+});
+// "Watch out!\SHAKE[7] The ground trembles."</code></pre>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>RPG Maker also runs escape codes when it only <em>measures</em> text (<code>textSizeEx</code>, e.g. for choice widths and word wrap). Side effects must check <code>ctx.drawing</code>, and message-only effects <code>ctx.isMessage</code>. Built-in escapes do both. <a class="more" href="#pitfall-drawing">More</a></div>
+
+<h3>Messages as Promises</h3>
+<p>Need a scene with a message window (map, battle). A running message is awaited first.</p>
+<pre><code>await MF.Text.show("Where am I?", { face: ["Actor1", 0], speaker: "Reid" });
+const answer = await MF.Text.choice(["Stay", "Leave"], { text: "What now?", cancel: 1 });
+if (answer === 1) await MF.Text.show("Let's go.");</code></pre>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>show(text, { face, background, position, speaker })</code></td><td>Resolves <code>true</code> when closed, <code>false</code> on scene change</td></tr>
+    <tr><td><code>choice(choices, { text, default, cancel, background, position, messagePosition, face, speaker })</code></td><td>Resolves the chosen index; <code>cancel: -1</code> disables cancel, an index makes cancel select it; <code>null</code> on scene change</td></tr>
+</table>
+
+<h3>Utilities</h3>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>wrap(window, text, maxWidth?)</code></td><td>Lines that fit the width (default <code>innerWidth</code>), measured with <code>textSizeEx</code> so codes don't count; words longer than the line are broken by characters (works for CJK)</td></tr>
+    <tr><td><code>strip(text)</code></td><td>Remove all escape codes</td></tr>
+    <tr><td><code>measure(window, text)</code></td><td><code>{ width, height }</code></td></tr>
+    <tr><td><code>applyMacros(text, window?)</code></td><td>Expand macros manually</td></tr>
+    <tr><td><code>hasCode(name)</code></td><td>Registered?</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="input">MF.Input</h2>
+<p>A layer over RPG Maker's <code>Input</code> and <code>TouchInput</code>. Updated once per frame right after RPG Maker reads input.</p>
+
+<h3>Actions</h3>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>Q, W, X, Z, arrows, Space, Enter, Esc, Shift… are already bound by RPG Maker; <code>bind</code> skips them unless <code>override: true</code>. <a class="more" href="#pitfall-keys">More</a></div>
+<pre><code>MF.Input.bind("journal", { keys: ["j"], buttons: [8] });   // J key, gamepad "back"
+if (Input.isTriggered("journal")) SceneManager.push(Scene_Journal);
+if (MF.Input.isReleased("journal")) { … }</code></pre>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>bind(action, { keys, buttons, override? })</code></td><td>Adds to <code>Input.keyMapper</code> / <code>gamepadMapper</code>. Keys: names (<code>"a"</code>, <code>"f5"</code>, <code>"space"</code>, <code>"left"</code>) or keyCodes. Keys already bound to another action are skipped with a warning unless <code>override: true</code></td></tr>
+    <tr><td><code>isPressed / isTriggered / isRepeated / isLongPressed(action)</code></td><td>Same as <code>Input.*</code></td></tr>
+    <tr><td><code>isReleased(action)</code>, <code>track(action)</code></td><td>Released this frame (tracking starts on first use or <code>track</code>)</td></tr>
+    <tr><td><code>keyCode(name)</code></td><td>Name → keyCode</td></tr>
+</table>
+
+<h3>Raw keys and shortcuts</h3>
+<p>Raw keys use <code>KeyboardEvent.code</code> (<code>"KeyZ"</code>, <code>"Digit1"</code>, <code>"F5"</code>, <code>"ControlLeft"</code>) — independent of keyboard layout and of <code>Input.keyMapper</code>. Intended for editors and debug tools.</p>
+<pre><code>if (MF.Input.isShortcut("Mod+Z")) doc.undo();          // Ctrl+Z, Cmd+Z on macOS
+if (MF.Input.isShortcut("Mod+Shift+Z")) doc.redo();
+if (MF.Input.isShortcut("Delete")) removeSelected();</code></pre>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>isKeyDown / isKeyTriggered / isKeyReleased(code)</code></td><td>Raw state; triggered/released last exactly one frame</td></tr>
+    <tr><td><code>isShortcut(combo, { whileTyping? })</code></td><td>Triggered this frame with <strong>exactly</strong> these modifiers, e.g. <code>"Mod+Z"</code>, <code>"Ctrl+Shift+Z"</code>, <code>"F5"</code>. Tokens: <code>Ctrl</code>, <code>Shift</code>, <code>Alt</code>, <code>Meta</code>/<code>Cmd</code>, <code>Mod</code>; letters, digits, <code>F1</code>–<code>F12</code>, <code>Esc</code>, <code>Enter</code>, <code>Space</code>, <code>Tab</code>, <code>Delete</code>, <code>Backspace</code>, arrows (<code>Up</code>…), <code>PageUp</code>, <code>Home</code>… or any <code>KeyboardEvent.code</code>. Ignored while typing in an HTML field</td></tr>
+    <tr><td><code>modifiers()</code></td><td><code>{ ctrl, shift, alt, meta }</code></td></tr>
+    <tr><td><code>isTyping()</code></td><td>Focus is in an HTML <code>input</code>/<code>textarea</code>/<code>select</code>/contentEditable</td></tr>
+</table>
+
+<h3>Pointer</h3>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>pointer()</code></td><td><code>{ x, y, pressed, triggered, released, clicked, repeated, longPressed, cancelled, doubleClicked, wheelX, wheelY, consumed }</code> — raw values even when consumed</td></tr>
+    <tr><td><code>isDoubleClicked()</code></td><td>Two clicks within 20 frames and 8 px</td></tr>
+    <tr><td><code>consumePointer()</code>, <code>isPointerConsumed()</code></td><td>For the rest of this frame <code>TouchInput.*</code> returns <code>false</code>, so windows and the map ignore a pointer action already handled</td></tr>
+    <tr><td><code>hitTest(displayObject, x, y)</code></td><td>Point inside the object's global bounds (visible objects only)</td></tr>
+</table>
+
+<h3 id="input-drag" data-keywords="draggable drag drop dnd move">Drag-and-drop <span class="tag">experimental</span></h3>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>While dragging, <code>TouchInput.*</code> returns <code>false</code> for the game; read raw values with <code>MF.Input.pointer()</code>. <a class="more" href="#pitfall-consume">More</a></div>
+<div class="sig">MF.Input.draggable(target, options?) <span class="ret">→ { destroy(), setEnabled(bool), isDragging() }</span></div>
+<pre><code>let base;
+const handle = MF.Input.draggable(window, {
+    onStart: () =&gt; (base = { x: window.x, y: window.y }),
+    onMove: c =&gt; { window.x = base.x + c.dx; window.y = base.y + c.dy; },
+    onEnd: () =&gt; saveLayout(),
+    onCancel: () =&gt; { window.x = base.x; window.y = base.y; },   // right click during drag
+    onClick: () =&gt; select(window)
+});</code></pre>
+<table>
+    <tr><th>Option</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>threshold</code></td><td><code>4</code></td><td>Pixels before a press becomes a drag (otherwise <code>onClick</code>)</td></tr>
+    <tr><td><code>priority</code></td><td><code>0</code></td><td>Overlapping targets: higher priority wins, then the most recently registered</td></tr>
+    <tr><td><code>consume</code></td><td><code>true</code></td><td>Consume the pointer while dragging and on release</td></tr>
+    <tr><td><code>persistent</code></td><td><code>false</code></td><td>Keep across scene changes (default: removed with the scene)</td></tr>
+    <tr><td><code>hitTest(x, y, target)</code></td><td>bounds</td><td>Custom hit area (e.g. only a title bar)</td></tr>
+    <tr><td><code>onPress</code>, <code>onStart</code>, <code>onMove</code>, <code>onEnd</code>, <code>onClick</code>, <code>onCancel</code></td><td>—</td><td><code>ctx = { target, x, y, startX, startY, dx, dy, moveX, moveY }</code></td></tr>
+</table>
+<p>Handle: <code>destroy()</code>, <code>setEnabled(bool)</code>, <code>isDragging()</code>. Destroyed targets are removed automatically.</p>
+<div class="sig">MF.Input.isDragging() <span class="ret">→ boolean — any drag in progress</span></div>
+
+<h3>Devices</h3>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>lastDevice()</code></td><td><code>"keyboard"</code> | <code>"mouse"</code> | <code>"touch"</code> | <code>"gamepad"</code> — e.g. to show the right button prompts. Event <code>mf:inputDeviceChanged (device, old)</code></td></tr>
+    <tr><td><code>gamepads()</code></td><td><code>[{ index, id, mapping }]</code></td></tr>
+    <tr><td><code>vibrate({ duration = 200, strong = 1, weak = 1 })</code></td><td>Rumble where the browser/pad supports it; returns <code>true</code> if accepted</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="ticker">MF.Ticker</h2>
+<p>Per-frame runner used by <code>MF.Tween</code> and <code>MF.Timer</code>. It ticks once per game frame (60 fps) after the scene update, <strong>only while the scene is started and the game window is active</strong> — animations pause together with the game.</p>
+<div class="sig">add(fn(frame), options?) <span class="ret">→ { remove(), isActive() }</span></div>
+<p>Return <code>false</code> from <code>fn</code> to stop. A throwing callback is logged and removed.</p>
+<table>
+    <tr><th>Option</th><th>Description</th></tr>
+    <tr><td><code>persistent</code></td><td>Survive scene changes (default: bound to the scene in which it was created and cancelled on change)</td></tr>
+    <tr><td><code>context</code></td><td><code>this</code> for <code>fn</code></td></tr>
+    <tr><td><code>onCancel</code></td><td>Called when removed by a scene change, an error or <code>clear()</code></td></tr>
+</table>
+<p>Also: <code>frame</code> (counter), <code>count()</code>, <code>clear()</code>, <code>update()</code> (called automatically).</p>
+
+<!-- ================================================================== -->
+<h2 id="tween">MF.Tween</h2>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span>Durations are <strong>frames</strong> (60 = 1 s). Tweens pause with the game window and are cancelled on scene change unless <code>persistent</code>. <a class="more" href="#pitfall-frames">More</a></div>
+<p>Animates numeric properties. Durations are in <strong>frames</strong> (60 = 1 second). Property names may be paths (<code>"scale.x"</code>). Tweens are awaitable: they resolve <code>true</code> on completion and <code>false</code> when stopped or cancelled by a scene change.</p>
+<pre><code>await MF.Tween.to(sprite, { x: 400, opacity: 0 }, { duration: 30, easing: "easeOutQuad" });
+
+MF.Tween.from(window, { y: -200 }, { duration: 20, easing: "easeOutBack" });
+MF.Tween.fromTo(sprite, { "scale.x": 0 }, { "scale.x": 1 }, { duration: 15 });
+MF.Tween.value(0, 100, { duration: 60 }, v =&gt; gauge.setRate(v / 100));
+
+const pulse = MF.Tween.to(icon, { opacity: 128 }, { duration: 20, repeat: -1, yoyo: true });
+pulse.stop();</code></pre>
+
+<h3>Options</h3>
+<table>
+    <tr><th>Option</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>duration</code></td><td><code>30</code></td><td>Frames per cycle</td></tr>
+    <tr><td><code>delay</code></td><td><code>0</code></td><td>Frames before start (start values are read after the delay)</td></tr>
+    <tr><td><code>easing</code></td><td><code>"linear"</code></td><td>Name from <a href="#math"><code>MF.Math.easing</code></a></td></tr>
+    <tr><td><code>repeat</code></td><td><code>0</code></td><td>Extra cycles; <code>-1</code> = infinite</td></tr>
+    <tr><td><code>yoyo</code></td><td><code>false</code></td><td>Reverse direction every cycle</td></tr>
+    <tr><td><code>round</code></td><td><code>false</code></td><td>Round values (pixel-perfect positions)</td></tr>
+    <tr><td><code>group</code></td><td>—</td><td>Name for <code>stopAll(group)</code></td></tr>
+    <tr><td><code>persistent</code></td><td><code>false</code></td><td>Survive scene changes</td></tr>
+    <tr><td><code>onStart</code>, <code>onUpdate(progress)</code>, <code>onRepeat(cycle)</code>, <code>onComplete</code></td><td>—</td><td>Callbacks (<code>this</code> = tween)</td></tr>
+</table>
+
+<h3>Instance</h3>
+<table>
+    <tr><th>Member</th><th>Description</th></tr>
+    <tr><td><code>then()</code>, <code>promise</code></td><td>Awaitable</td></tr>
+    <tr><td><code>pause()</code>, <code>resume()</code>, <code>isPaused()</code></td><td>Pause</td></tr>
+    <tr><td><code>stop()</code></td><td>Stop at current values (resolves <code>false</code>)</td></tr>
+    <tr><td><code>finish()</code></td><td>Jump to the end values and complete</td></tr>
+    <tr><td><code>isActive()</code></td><td>Still running</td></tr>
+</table>
+
+<h3>Static</h3>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>to(target, props, options?)</code></td><td>Animate from current values to <code>props</code></td></tr>
+    <tr><td><code>from(target, props, options?)</code></td><td>Animate from <code>props</code> to current values; start values are applied immediately</td></tr>
+    <tr><td><code>fromTo(target, from, to, options?)</code></td><td>Explicit start and end values</td></tr>
+    <tr><td><code>value(from, to, options?, onValue(v, progress))</code></td><td>Animate a plain number</td></tr>
+    <tr><td><code>killTweensOf(target, finish = false)</code></td><td>Stop all tweens of a target (optionally jump to their end)</td></tr>
+    <tr><td><code>isTweening(target)</code></td><td>Any active tween on the target</td></tr>
+    <tr><td><code>stopAll(group?)</code></td><td>Stop all tweens, or all tweens of a group</td></tr>
+    <tr><td><code>count()</code></td><td>Number of active tweens</td></tr>
+</table>
+<p>Non-numeric properties are skipped with a warning. Tweens of destroyed PIXI objects stop automatically.</p>
+
+<h3>Sequences</h3>
+<pre><code>async function intro(sprite) {
+    await MF.Tween.to(sprite, { opacity: 255 }, { duration: 20 });
+    await MF.Timer.wait(30);
+    await Promise.all([
+        MF.Tween.to(sprite, { x: 200 }, { duration: 30 }),
+        MF.Tween.to(sprite, { "scale.x": 2, "scale.y": 2 }, { duration: 30 })
+    ]);
+}</code></pre>
+
+<!-- ================================================================== -->
+<h2 id="timer">MF.Timer</h2>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>wait(frames, { persistent? })</code></td><td>Promise → <code>true</code> after n frames, <code>false</code> if cancelled by a scene change</td></tr>
+    <tr><td><code>after(frames, fn, { persistent? })</code></td><td>Call once → <code>{ cancel(), isActive() }</code></td></tr>
+    <tr><td><code>every(frames, fn(count), { times?, persistent? })</code></td><td>Repeat; return <code>false</code> from <code>fn</code> to stop → <code>{ cancel(), isActive() }</code></td></tr>
+    <tr><td><code>until(predicate, { timeout?, persistent? })</code></td><td>Promise → <code>true</code> when <code>predicate()</code> is truthy (checked each frame); <code>false</code> on timeout (frames) or scene change</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="queue">MF.Queue</h2>
+<p>Runs tasks one after another. A task is a function returning a value, a Promise or a Tween.</p>
+<pre><code>const queue = new MF.Queue();
+queue.add(() =&gt; MF.Tween.to(actorSprite, { x: 300 }, { duration: 40 }), "walk");
+queue.add(() =&gt; MF.Timer.wait(20));
+queue.add(() =&gt; $gameScreen.startFlash([255, 255, 255, 170], 30));
+queue.on("empty", () =&gt; console.log("cut-scene finished"));</code></pre>
+<table>
+    <tr><th>Member</th><th>Description</th></tr>
+    <tr><td><code>new MF.Queue({ paused? })</code></td><td>Extends <code>EventEmitter</code></td></tr>
+    <tr><td><code>add(fn, label?)</code></td><td>Promise of the result. A failing task is logged, emits <code>"error"</code>, rejects its promise, and the queue continues. The promise is pre-handled, so fire-and-forget calls never trigger MZ's unhandled-rejection error screen</td></tr>
+    <tr><td><code>pause()</code>, <code>resume()</code></td><td>Pause before the next task</td></tr>
+    <tr><td><code>clear()</code></td><td>Drop pending tasks (they resolve <code>undefined</code>); the running task finishes</td></tr>
+    <tr><td><code>size</code>, <code>isRunning()</code></td><td>State</td></tr>
+    <tr><td>events <code>empty</code>, <code>error (error, label)</code></td><td></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="layout">MF.Layout <span class="tag">experimental</span></h2>
+<p>Applies <a href="#units">Units</a> + <a href="#anchor">Anchor</a> layout to display objects, so plugins don't call <code>Anchor.toAbsolute</code> by hand in every window.</p>
+
+<h3>Layout spec</h3>
+<table>
+    <tr><th>Field</th><th>Description</th></tr>
+    <tr><td><code>x</code>, <code>y</code></td><td>Offset from the container's anchor point (units)</td></tr>
+    <tr><td><code>width</code>, <code>height</code></td><td>Units or <code>"auto"</code>; omitted → natural size</td></tr>
+    <tr><td><code>anchor</code></td><td>One of the nine anchors (default <code>top-left</code>)</td></tr>
+    <tr><td><code>minWidth</code>, <code>maxWidth</code>, <code>minHeight</code>, <code>maxHeight</code></td><td>Limits (units, relative to container)</td></tr>
+    <tr><td><code>rows</code></td><td>Windows: rows for <code>height: "auto"</code></td></tr>
+    <tr><td><code>fit</code></td><td>Sprites: <code>none</code> (default), <code>stretch</code>, <code>contain</code>, <code>cover</code></td></tr>
+</table>
+
+<h3>Container</h3>
+<p>A layout is resolved against, in order: an explicit container (<code>setLayoutContainer</code>), the parent's <code>layoutInnerSize()</code>, a window's inner area (for objects added with <code>addInnerChild</code>), a parent window's size, or the UI area <code>Graphics.boxWidth × boxHeight</code>. Objects re-layout automatically when added to a parent, and a parent refreshes its laid-out children.</p>
+
+<h3>Functions</h3>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>resolve(spec, container?, natural?, auto?)</code></td><td>Pure calculation → <code>{ x, y, width, height }</code></td></tr>
+    <tr><td><code>toSpec(rect, container?, { anchor, relative })</code></td><td>Inverse of <code>resolve</code>; <code>relative: true</code> stores percentages. For editors: after dragging, convert the rect back into a spec</td></tr>
+    <tr><td><code>containerOf(obj)</code>, <code>screenSize()</code></td><td>Container detection</td></tr>
+    <tr><td><code>mixinWindow(proto)</code></td><td>Adds layout to any <code>Window_*</code> class: resizes via <code>move()</code>, recreates contents and calls <code>refresh()</code> only when the size changed. <code>"auto"</code> height uses <code>rows</code>, or <code>maxItems/maxCols</code> for selectable windows</td></tr>
+    <tr><td><code>mixinSprite(proto)</code></td><td>Adds layout to any <code>Sprite</code> class: fit scaling, alignment inside the rect, respects <code>sprite.anchor</code>; natural size = bitmap frame</td></tr>
+    <tr><td><code>mixinContainer(proto)</code></td><td>Sized group; natural size = container</td></tr>
+    <tr><td><code>mixin(proto, overwrite?)</code></td><td>Generic (position only)</td></tr>
+    <tr><td><code>refreshChildren(obj)</code>, <code>refreshTree(root)</code></td><td>Re-layout</td></tr>
+</table>
+
+<h3>Instance methods (after mixin)</h3>
+<p><code>setLayout(spec, merge = false)</code>, <code>getLayout()</code>, <code>hasLayout()</code>, <code>setLayoutContainer(sizeOrFn)</code>, <code>layoutContainerSize()</code>, <code>layoutInnerSize()</code>, <code>layoutRect()</code>, <code>refreshLayout()</code>; windows also <code>layoutRows()</code>.</p>
+<pre><code>// Add layout to a built-in window class
+MF.Layout.mixinWindow(Window_Gold.prototype);
+scene._goldWindow.setLayout({ anchor: "bottom-right", x: -8, y: -8, width: 240, height: "auto", rows: 1 });</code></pre>
+
+<!-- ================================================================== -->
+<h2 id="ui">MF.UI <span class="tag">experimental</span></h2>
+<p>Base classes with layout built in. They use MZ-style constructors, so they are subclassed the usual MZ way.</p>
+
+<div class="sig">new MF.UI.Window(spec?, container?)</div>
+<p><code>Window_Base</code> with layout. Override <code>refresh()</code> to draw; it is called after every resize.</p>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span><code>refresh()</code> runs automatically only after a resize — call it after creation and when your data changes. <a class="more" href="#pitfall-window-refresh">More</a></div>
+<pre><code>function Window_QuestInfo() { this.initialize(...arguments); }
+Window_QuestInfo.prototype = Object.create(MF.UI.Window.prototype);
+Window_QuestInfo.prototype.constructor = Window_QuestInfo;
+
+Window_QuestInfo.prototype.refresh = function() {
+    MF.UI.Window.prototype.refresh.call(this);
+    this.drawText(t("title"), 0, 0, this.innerWidth, "center");
+};
+
+const win = new Window_QuestInfo({ anchor: "bottom", y: -20, width: "60%", height: "auto", rows: 2 });
+this.addWindow(win);</code></pre>
+
+<div class="sig">new MF.UI.Sprite(bitmap?, spec?)</div>
+<p>Sprite with layout and fit modes. Re-layouts when the bitmap finishes loading.</p>
+<pre><code>const logo = new MF.UI.Sprite(ImageManager.loadPicture("Logo"),
+    { anchor: "top", y: 40, width: "50%", height: 120, fit: "contain" });</code></pre>
+
+<div class="sig">new MF.UI.Container(spec?)</div>
+<p>Invisible sized group (default: full container). Children resolve their layouts inside it.</p>
+<pre><code>const panel = new MF.UI.Container({ anchor: "center", width: 400, height: 300 });
+panel.addChild(new MF.UI.Sprite(bitmap, { anchor: "top-right" }));</code></pre>
+
+<!-- ================================================================== -->
+<h2 id="assets">MF.Assets</h2>
+<p>Batch preloading for cut-scenes and heavy UI: parallel loading with a concurrency limit, progress reporting, and failures that are reported instead of crashing the game.</p>
+<pre><code>const task = MF.Assets.load([
+    "picture:Cutscene_BG", "picture:Cutscene_Hero", "face:Actor1",
+    { type: "se", name: "Thunder", static: true },
+    { type: "bgm", name: "Theme3" },
+    { type: "json", url: "data/Cutscene1.json" }
+], {
+    concurrency: 6,
+    group: "cutscene1",
+    onProgress: (p, item) =&gt; loadingBar.setRate(p)
+});
+
+const { ok, failed } = await task;
+if (!ok) console.warn("missing:", failed.map(f =&gt; f.item.name));</code></pre>
+
+<h3>Item types</h3>
+<table>
+    <tr><th>Item</th><th>Loaded with</th></tr>
+    <tr><td><code>"picture:Name"</code>, <code>{ type: "picture", name }</code></td><td><code>ImageManager.loadPicture</code>. Also <code>face</code>, <code>character</code>, <code>svActor</code>, <code>svEnemy</code>, <code>enemy</code>, <code>parallax</code>, <code>tileset</code>, <code>title1</code>, <code>title2</code>, <code>battleback1</code>, <code>battleback2</code>, <code>system</code></td></tr>
+    <tr><td><code>{ type: "image", folder, name }</code>, <code>{ type: "image", url }</code>, <code>"img/…/x.png"</code></td><td><code>ImageManager.loadBitmap</code> / <code>loadBitmapFromUrl</code></td></tr>
+    <tr><td><code>{ type: "bgm" | "bgs" | "me" | "se", name }</code></td><td><code>AudioManager.createBuffer</code>; <code>se</code> with <code>static: true</code> → <code>AudioManager.loadStaticSe</code></td></tr>
+    <tr><td><code>{ type: "json", url }</code></td><td><a href="#fs"><code>MF.FS.loadJson</code></a></td></tr>
+    <tr><td><code>{ type: "font", family, filename }</code></td><td><code>FontManager.load</code></td></tr>
+    <tr><td><code>{ type: "custom", load: () =&gt; Promise }</code></td><td>Your function</td></tr>
+</table>
+<div class="pitfall"><span class="pitfall-label">Pitfall</span><strong>Audio caveat.</strong> RPG Maker creates a new buffer each time BGM/BGS/ME/SE is played, so preloading audio warms the file cache but playback still decodes again. Only static SE (<code>static: true</code>) are played from the preloaded buffer. <a class="more" href="#pitfall-audio">More</a></div>
+
+<h3>Task</h3>
+<table>
+    <tr><th>Member</th><th>Description</th></tr>
+    <tr><td><code>await task</code> / <code>task.then</code></td><td><code>{ ok, cancelled, results, failed: [{ item, error }] }</code> — never rejects</td></tr>
+    <tr><td><code>progress</code>, <code>loaded</code>, <code>total</code>, <code>failed</code></td><td>Live state (failed items count as processed in <code>progress</code>)</td></tr>
+    <tr><td><code>cancel()</code>, <code>isDone()</code></td><td>Cancel stops starting new items</td></tr>
+    <tr><td>events <code>progress (p, item)</code>, <code>error (item, error)</code>, <code>complete (result)</code></td><td>EventEmitter</td></tr>
+</table>
+<table>
+    <tr><th>Option</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>concurrency</code></td><td><code>6</code></td><td>Parallel loads</td></tr>
+    <tr><td><code>timeout</code></td><td><code>30000</code></td><td>Per item, ms</td></tr>
+    <tr><td><code>group</code></td><td>—</td><td>Keep references to loaded objects under this name until <code>release(group)</code></td></tr>
+    <tr><td><code>onProgress(progress, item, task)</code></td><td>—</td><td>Callback</td></tr>
+</table>
+
+<h3>Functions</h3>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>load(items, options)</code></td><td>→ task</td></tr>
+    <tr><td><code>bindScene(scene, task)</code></td><td>The scene does not start (<code>isReady()</code> is false) until the task is done — call in <code>create()</code> for a loading phase without extra code</td></tr>
+    <tr><td><code>register(type, loader(item, timeout) → Promise)</code></td><td>Custom asset type</td></tr>
+    <tr><td><code>isLoading()</code></td><td>Any task running</td></tr>
+    <tr><td><code>release(group)</code>, <code>retained(group)</code></td><td>Group references</td></tr>
+</table>
+<div class="note">A failed image is removed from <code>ImageManager</code>'s cache. Otherwise RPG Maker would later throw its load-error screen from <code>ImageManager.isReady()</code> in an unrelated scene.</div>
+
+<!-- ================================================================== -->
+<h2 id="versioning">Versioning policy</h2>
+<p>MF_Core follows <a href="https://semver.org/">Semantic Versioning</a>. Several plugins are developed against it in parallel, so a silent change to any public function breaks all of them at once. The rules below are mandatory.</p>
+<table>
+    <tr><th>Version part</th><th>Allowed changes</th></tr>
+    <tr><td>PATCH <code>1.2.x</code></td><td>Bug fixes only. No API changes.</td></tr>
+    <tr><td>MINOR <code>1.x.0</code></td><td>New API; backward-compatible behavior changes; deprecations; changes of <span class="tag">experimental</span> APIs.</td></tr>
+    <tr><td>MAJOR <code>x.0.0</code></td><td>Removal of previously deprecated API; incompatible changes.</td></tr>
+</table>
+
+<h3>Deprecation lifecycle</h3>
+<p>Like PIXI, MF_Core never removes or incompatibly changes an API in one step:</p>
+<ol>
+    <li><strong>Replace.</strong> The new API is added. The old name keeps working and redirects to the new implementation through <a href="#deprecation"><code>MF.Deprecation</code></a>, printing a one-time warning.</li>
+    <li><strong>Announce.</strong> The changelog lists the old API under <em>Deprecated</em> with the <code>since</code> and <code>removeIn</code> versions.</li>
+    <li><strong>Remove.</strong> Only in the announced MAJOR release, listed under <em>Removed ⚠ BREAKING</em>. At least one MINOR release separates steps 1 and 3.</li>
+</ol>
+<pre><code>// Hypothetical MF_Core 1.1.0: Utils.oldName renamed to Utils.newName
+MF.Utils.newName = function(...) { ... };
+MF.Deprecation.method(MF.Utils, "oldName", {
+    id: "MF.Utils.oldName", since: "1.1.0", removeIn: "2.0.0",
+    replacement: "MF.Utils.newName", fn: MF.Utils.newName
+});
+// Console (once): [MF_Core] MF.Utils.oldName is deprecated since MF_Core 1.1.0
+//                 and will be removed in 2.0.0. Use MF.Utils.newName instead.</code></pre>
+
+<h3>Dependent plugins</h3>
+<ul>
+    <li>Declare the minimum MF_Core version the plugin was written against: <code>register(name, version, { requires: { MF_Core: "1.0.0" } })</code>. A bare <code>require("…", "MF_Core")</code> without a version logs a warning.</li>
+    <li>State the same version in <code>@help</code>: <code>Requires: MF_Core 1.0.0+ (written against 1.0.0)</code>.</li>
+    <li>If the installed MF_Core has a higher MAJOR version than required, a one-time compatibility warning is logged.</li>
+    <li>During development, check <code>MF.Deprecation.list()</code> — it shows every deprecated API the running plugins still use.</li>
+</ul>
+
+<h3>Changelog</h3>
+<p>Every public API change is recorded in <a href="CHANGELOG.md"><code>CHANGELOG.md</code></a> in the same commit, tagged <em>Added</em>, <em>Changed</em>, <em>Deprecated</em>, <em>Removed ⚠</em>, <em>Breaking ⚠</em>, <em>Experimental change</em> or <em>Fixed</em>.</p>
+
+<!-- ================================================================== -->
+<h2 id="bus-events">Bus events</h2>
+<p>Emitted on <code>MF.Events.bus</code>:</p>
+<table>
+    <tr><th>Event</th><th>Arguments</th><th>When</th></tr>
+    <tr><td><code>mf:dataLoaded</code></td><td><code>(globalName, value)</code></td><td>A data file was loaded (or its default was applied)</td></tr>
+    <tr><td><code>mf:dataError</code></td><td><code>(globalName, { code, message })</code></td><td>A file is invalid, or a required file failed</td></tr>
+    <tr><td><code>mf:scriptBlocked</code></td><td><code>({ type, code, message, count })</code></td><td>A script was skipped because scripts are disabled (once per snippet)</td></tr>
+    <tr><td><code>mf:scriptError</code></td><td><code>({ type, code, message, count })</code></td><td>A script threw (once per snippet)</td></tr>
+    <tr><td><code>mf:deprecated</code></td><td><code>({ id, since, removeIn, replacement, owner, count })</code></td><td>A deprecated API was used (once per id)</td></tr>
+    <tr><td><code>mf:saveLoaded</code></td><td>—</td><td><code>MF.Save</code> data was read from a save file</td></tr>
+    <tr><td><code>mf:saveError</code></td><td><code>(key, error)</code></td><td>Migration or <code>onLoad</code> of save data failed (raw data kept)</td></tr>
+    <tr><td><code>mf:configLoaded</code></td><td>—</td><td><code>config.rmmzsave</code> was applied</td></tr>
+    <tr><td><code>mf:configChanged</code></td><td><code>(key, value, old)</code></td><td>A config value changed</td></tr>
+    <tr><td><code>mf:localeChanged</code></td><td><code>(locale, old)</code></td><td>The current locale changed</td></tr>
+    <tr><td><code>mf:inputDeviceChanged</code></td><td><code>(device, old)</code></td><td>The player switched between keyboard, mouse, touch and gamepad</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="errors">Error handling summary</h2>
+<table>
+    <tr><th>Area</th><th>Policy</th></tr>
+    <tr><td>Hooks</td><td>Propagate by default; <code>safe</code> isolates the extension only</td></tr>
+    <tr><td>Event listeners</td><td>Caught and logged per call</td></tr>
+    <tr><td>Conditions</td><td><code>false</code>, logged once per unique condition</td></tr>
+    <tr><td>Scripts</td><td>Fallback value, logged once per snippet, bus event, <code>issues()</code></td></tr>
+    <tr><td>Units</td><td>Fallback value, warning</td></tr>
+    <tr><td>Schema / plugin parameters</td><td>Error list; <code>Core.parameters</code> logs one warning with all fields; <code>assert</code> throws</td></tr>
+    <tr><td>Data files</td><td>See <a href="#data-errors">MF.Data error handling</a></td></tr>
+    <tr><td>Save data</td><td>Raw data kept on migration errors, <code>mf:saveError</code></td></tr>
+    <tr><td>Config values</td><td>Invalid stored value → default, warning</td></tr>
+    <tr><td>I18n</td><td>Missing key → fallback/key, warned once</td></tr>
+    <tr><td>Ticker / Tween / Timer callbacks</td><td>Logged; a throwing ticker entry is removed. Tween callbacks are isolated</td></tr>
+    <tr><td>Queue tasks</td><td>Logged, <code>"error"</code> event, promise rejects (pre-handled), queue continues</td></tr>
+    <tr><td>Text codes</td><td>Failing macro → empty string, failing escape → skipped; logged once per code+argument</td></tr>
+    <tr><td>Drag callbacks</td><td>Logged, drag continues</td></tr>
+    <tr><td>Assets</td><td>Task never rejects; failures in <code>failed</code>, logged, <code>"error"</code> event; failed images evicted from cache</td></tr>
+    <tr><td>Documents</td><td><code>save()</code> refuses invalid data and overwriting unparsable files; returns a reason instead of throwing</td></tr>
+    <tr><td>File writes</td><td>Return <code>false</code>, error logged; atomic, optional backup</td></tr>
+    <tr><td>Deprecated API</td><td>Keeps working; warned once</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="changelog">Changelog</h2>
+<p>The full changelog with Breaking / Deprecated markers is in <a href="CHANGELOG.md"><code>CHANGELOG.md</code></a>. Summary:</p>
+<h3>1.0.0 — 2026-09-23</h3>
+<ul>
+    <li><strong>Initial release.</strong> Foundation: <code>Core</code>, <code>Log</code>, <code>Utils</code>, <code>Math</code>, <code>Units</code>, <code>Anchor</code>, <code>Color</code>, <code>Hook</code>, <code>Events</code>, <code>Deprecation</code>, <code>Schema</code>. Game logic: <code>Condition</code>, <code>Script</code>. Storage: <code>FS</code>, <code>Data</code>, <code>Save</code>, <code>Config</code>, <code>Migration</code>, <code>History</code>, <code>Document</code> <span class="tag">experimental</span>. Text: <code>I18n</code>, <code>Text</code>. Input: <code>Input</code> (drag-and-drop <span class="tag">experimental</span>). Time: <code>Ticker</code>, <code>Tween</code>, <code>Timer</code>, <code>Queue</code>. Display and resources: <code>Layout</code> <span class="tag">experimental</span>, <code>UI</code> <span class="tag">experimental</span>, <code>Assets</code>.</li>
+</ul>
+
+</main>
+
+<script src="assets/docs.js"></script>
+</body>
+</html>
