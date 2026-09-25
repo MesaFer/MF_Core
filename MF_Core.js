@@ -1,9 +1,22 @@
 //=============================================================================
 // MF_Core.js
 //=============================================================================
+//-----------------------------------------------------------------------------
+// Copyright (c) 2026 MesaFer. All rights reserved.
+// License: MF Plugins License 1.1 (LICENSE.md).
+//   One license per developer, unlimited projects, free updates. As is,
+//   without warranty.
+//   ALLOWED: use in commercial and non-commercial RPG Maker MZ games;
+//            modifying this file for your own projects;
+//            MF_Core and MF_SimpleVisual may be included in game builds.
+//   FORBIDDEN: selling or redistributing this file or parts of it (also for
+//            free, also in packs or templates); copying the code into other
+//            projects; distributing modified versions; removing this header.
+//   MF_SimpleVisualEditor must NOT be distributed, not even in game builds.
+//-----------------------------------------------------------------------------
 /*:
  * @target MZ
- * @plugindesc [v1.0.0] MF Core — base library for MF_* plugins.
+ * @plugindesc [v1.1.0] MF Core — base library for MF_* plugins.
  * @author MesaFer
  * @url
  *
@@ -23,7 +36,7 @@
  * @default false
  * @desc Allow executing JS code from data ("script" conditions and actions).
  *
- * @help MF_Core.js  v1.0.0
+ * @help MF_Core.js  v1.1.0
  * ============================================================================
  * Base library for the MF_* plugin family.
  * Must be placed ABOVE all other MF_* plugins in the plugin list.
@@ -35,7 +48,8 @@
  *   MF.Log         — prefixed logging
  *   MF.Utils       — type checks, clone, merge, paths, equality, uid
  *   MF.Math        — clamp, lerp, remap, snap, rectangles, easing
- *   MF.Units       — parsing of "240", "50%", "100%-240", "auto"
+ *   MF.Units       — parsing of "240", "50%", "100%-240", "auto"; functions
+ *                    (min, max, clamp, lerp, angle, sind...), comparisons, ? :
  *   MF.Anchor      — anchor points (top-left, center, bottom-right, ...)
  *   MF.Color       — color parsing and conversion
  *   MF.Hook        — safe method overriding (alias/before/after)
@@ -88,6 +102,14 @@
  *   Changelog: docs/MF_Core/CHANGELOG.md
  *   Reference: docs/MF_Core/index.html
  *
+ * ----------------------------------------------------------------------------
+ * License (full text: LICENSE.md)
+ * ----------------------------------------------------------------------------
+ *   Allowed: commercial and non-commercial RPG Maker MZ games; including this
+ *   file in game builds. Forbidden: selling or redistributing the plugin or
+ *   parts of it, copying its code into other projects, distributing modified
+ *   versions, removing the license header. Copyright (c) 2026 MesaFer.
+ *
  * This plugin has no plugin commands.
  */
 
@@ -95,7 +117,7 @@
     "use strict";
 
     const PLUGIN_NAME = "MF_Core";
-    const PLUGIN_VERSION = "1.0.0";
+    const PLUGIN_VERSION = "1.1.0";
 
     const MF = (window.MF = window.MF || {});
 
@@ -565,13 +587,17 @@
     };
 
     //=========================================================================
-    // MF.Units — "240", "50%", "100%-240", "(100%-20)/2", "auto"
+    // MF.Units — "240", "50%", "100%-240", "(100%-20)/2", "auto", "clamp(50%, 100, 400)"
     //=========================================================================
     //  Grammar:
-    //    expr   := term (('+' | '-') term)*
-    //    term   := unary (('*' | '/') unary)*
-    //    unary  := '-' unary | factor
-    //    factor := NUMBER '%'? | NUMBER 'px' | '(' expr ')'
+    //    ternary := or ('?' ternary ':' ternary)?
+    //    or      := and ('||' and)*          and := cmp ('&&' cmp)*
+    //    cmp     := expr (('<'|'>'|'<='|'>='|'=='|'!=') expr)*
+    //    expr    := term (('+' | '-') term)*
+    //    term    := unary (('*' | '/') unary)*
+    //    unary   := '-' unary | '!' unary | power      power := factor ('^' unary)?
+    //    factor  := NUMBER '%'? | NUMBER 'px' | '(' ternary ')' | NAME '(' args ')' | CONST
+    //  Functions: UNIT_FUNCS (min, max, clamp, lerp, atan2, angle, sind...). Constants: pi, e.
     //  Percentages are relative to base. eval is not used.
     //=========================================================================
 
@@ -579,24 +605,67 @@
 
     function tokenizeUnits(src) {
         const tokens = [];
-        const re = /\s*(?:(\d+(?:\.\d+)?|\.\d+)(%|px)?|([+\-*/()]))/y;
+        const re = /\s*(?:(\d+(?:\.\d+)?|\.\d+)(%|px)?|([A-Za-z_]\w*)|(<=|>=|==|!=|&&|\|\||[+\-*/()<>!?:,^]))/y;
         let pos = 0;
         while (pos < src.length) {
             re.lastIndex = pos;
             const m = re.exec(src);
             if (!m) {
                 if (/^\s*$/.test(src.slice(pos))) break;
-                throw new Error(`MF.Units: unexpected symbol at ${pos} in "${src}"`);
+                throw new Error(`MF.Units: unexpected symbol "${src[pos]}" at ${pos} in "${src}"`);
             }
             if (m[1] !== undefined) {
                 tokens.push({ type: m[2] === "%" ? "pct" : "num", value: parseFloat(m[1]) });
+            } else if (m[3] !== undefined) {
+                tokens.push({ type: "id", value: m[3] });
             } else {
-                tokens.push({ type: "op", value: m[3] });
+                tokens.push({ type: "op", value: m[4] });
             }
             pos = re.lastIndex;
         }
         return tokens;
     }
+
+    const D2R = Math.PI / 180;
+    /** Functions of expressions: [min args, max args, fn]. Trigonometry in radians; *d variants in degrees. */
+    const UNIT_FUNCS = {
+        min: [1, Infinity, (...a) => Math.min(...a)],
+        max: [1, Infinity, (...a) => Math.max(...a)],
+        abs: [1, 1, Math.abs],
+        sign: [1, 1, Math.sign],
+        floor: [1, 1, Math.floor],
+        ceil: [1, 1, Math.ceil],
+        round: [1, 2, (v, d = 0) => { const k = Math.pow(10, d); return Math.round(v * k) / k; }],
+        trunc: [1, 1, Math.trunc],
+        sqrt: [1, 1, v => (v < 0 ? 0 : Math.sqrt(v))],
+        pow: [2, 2, Math.pow],
+        exp: [1, 1, Math.exp],
+        log: [1, 1, v => (v > 0 ? Math.log(v) : 0)],
+        mod: [2, 2, (a, b) => (b === 0 ? 0 : ((a % b) + b) % b)],
+        clamp: [3, 3, (v, a, b) => Math.min(Math.max(v, Math.min(a, b)), Math.max(a, b))],
+        lerp: [3, 3, (a, b, t) => a + (b - a) * t],
+        step: [2, 2, (edge, v) => (v >= edge ? 1 : 0)],
+        between: [3, 3, (v, a, b) => (v >= Math.min(a, b) && v <= Math.max(a, b) ? 1 : 0)],
+        if: [3, 3, (c, a, b) => (c ? a : b)],
+        hypot: [1, Infinity, (...a) => Math.hypot(...a)],
+        dist: [4, 4, (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1)],
+        sin: [1, 1, Math.sin],
+        cos: [1, 1, Math.cos],
+        tan: [1, 1, Math.tan],
+        asin: [1, 1, v => Math.asin(Math.max(-1, Math.min(1, v)))],
+        acos: [1, 1, v => Math.acos(Math.max(-1, Math.min(1, v)))],
+        atan: [1, 1, Math.atan],
+        atan2: [2, 2, Math.atan2],
+        sind: [1, 1, v => Math.sin(v * D2R)],
+        cosd: [1, 1, v => Math.cos(v * D2R)],
+        tand: [1, 1, v => Math.tan(v * D2R)],
+        atan2d: [2, 2, (y, x) => Math.atan2(y, x) / D2R],
+        /** Angle in degrees from (x1, y1) to (x2, y2): 0 = right, 90 = down. */
+        angle: [4, 4, (x1, y1, x2, y2) => Math.atan2(y2 - y1, x2 - x1) / D2R],
+        deg: [1, 1, v => v / D2R],
+        rad: [1, 1, v => v * D2R]
+    };
+    const UNIT_CONSTS = { pi: Math.PI, PI: Math.PI, e: Math.E, true: 1, false: 0 };
 
     function compileUnits(src) {
         const tokens = tokenizeUnits(src);
@@ -605,6 +674,49 @@
         const take = () => tokens[i++];
         const isOp = (t, v) => t && t.type === "op" && t.value === v;
 
+        function ternary() {
+            const c = or();
+            if (!isOp(peek(), "?")) return c;
+            take();
+            const a = ternary();
+            if (!isOp(take(), ":")) throw new Error(`MF.Units: missing ":" in "${src}"`);
+            const b = ternary();
+            return x => (c(x) ? a(x) : b(x));
+        }
+        function or() {
+            let left = and();
+            while (isOp(peek(), "||")) {
+                take();
+                const l = left;
+                const r = and();
+                left = b => (l(b) || r(b) ? 1 : 0);
+            }
+            return left;
+        }
+        function and() {
+            let left = cmp();
+            while (isOp(peek(), "&&")) {
+                take();
+                const l = left;
+                const r = cmp();
+                left = b => (l(b) && r(b) ? 1 : 0);
+            }
+            return left;
+        }
+        const CMP = {
+            "<": (a, b) => a < b, ">": (a, b) => a > b, "<=": (a, b) => a <= b, ">=": (a, b) => a >= b,
+            "==": (a, b) => Math.abs(a - b) < 1e-9, "!=": (a, b) => Math.abs(a - b) >= 1e-9
+        };
+        function cmp() {
+            let left = expr();
+            while (peek() && peek().type === "op" && CMP[peek().value]) {
+                const f = CMP[take().value];
+                const l = left;
+                const r = expr();
+                left = b => (f(l(b), r(b)) ? 1 : 0);
+            }
+            return left;
+        }
         function expr() {
             let left = term();
             while (isOp(peek(), "+") || isOp(peek(), "-")) {
@@ -638,28 +750,73 @@
                 take();
                 return unary();
             }
-            return factor();
+            if (isOp(peek(), "!")) {
+                take();
+                const v = unary();
+                return b => (v(b) ? 0 : 1);
+            }
+            return power();
+        }
+        function power() {
+            const base = factor();
+            if (!isOp(peek(), "^")) return base;
+            take();
+            const e = unary();
+            return b => Math.pow(base(b), e(b));
         }
         function factor() {
             const t = take();
             if (!t) throw new Error(`MF.Units: unexpected end in "${src}"`);
             if (t.type === "num") return () => t.value;
             if (t.type === "pct") return b => (b * t.value) / 100;
+            if (t.type === "id") {
+                if (isOp(peek(), "(")) {
+                    const def = UNIT_FUNCS[t.value];
+                    if (!def) throw new Error(`MF.Units: unknown function "${t.value}" in "${src}"`);
+                    take();
+                    const args = [];
+                    if (!isOp(peek(), ")")) {
+                        args.push(ternary());
+                        while (isOp(peek(), ",")) {
+                            take();
+                            args.push(ternary());
+                        }
+                    }
+                    if (!isOp(take(), ")")) throw new Error(`MF.Units: missing ")" after ${t.value}( in "${src}"`);
+                    if (args.length < def[0] || args.length > def[1]) throw new Error(`MF.Units: ${t.value}() expects ${def[0] === def[1] ? def[0] : `${def[0]}+`} argument(s) in "${src}"`);
+                    const fn = def[2];
+                    if (t.value === "if") return b => (args[0](b) ? args[1](b) : args[2](b));
+                    return b => fn(...args.map(a => a(b)));
+                }
+                if (Object.prototype.hasOwnProperty.call(UNIT_CONSTS, t.value)) {
+                    const c = UNIT_CONSTS[t.value];
+                    return () => c;
+                }
+                throw new Error(`MF.Units: unknown name "${t.value}" in "${src}"`);
+            }
             if (isOp(t, "(")) {
-                const v = expr();
+                const v = ternary();
                 if (!isOp(take(), ")")) throw new Error(`MF.Units: missing ")" in "${src}"`);
                 return v;
             }
             throw new Error(`MF.Units: unexpected token "${t.value}" in "${src}"`);
         }
 
-        const fn = expr();
+        const fn = ternary();
         if (i < tokens.length) throw new Error(`MF.Units: unexpected token "${tokens[i].value}" in "${src}"`);
         return fn;
     }
 
     const Units = {
         AUTO: "auto",
+        /** @since 1.1.0 Names of expression functions and constants (for editors / autocompletion). */
+        FUNCTIONS: Object.freeze(Object.keys(UNIT_FUNCS)),
+        CONSTANTS: Object.freeze(Object.keys(UNIT_CONSTS)),
+        /** @since 1.1.0 Arity of a function: { min, max } or null. */
+        arity(name) {
+            const d = Object.prototype.hasOwnProperty.call(UNIT_FUNCS, name) ? UNIT_FUNCS[name] : null;
+            return d ? { min: d[0], max: d[1] } : null;
+        },
 
         isAuto(value) {
             return value === "auto";

@@ -10,7 +10,7 @@
 
 <nav>
     <div class="title">MF_Core</div>
-    <div class="version">v1.0.0 · RPG Maker MZ</div>
+    <div class="version">v1.1.0 · RPG Maker MZ</div>
     <div class="search">
         <input id="filter" type="search" placeholder="Search functions, options…" aria-label="Search the reference" autocomplete="off">
         <kbd>/</kbd>
@@ -91,7 +91,7 @@
     <tr><td><a href="#log"><code>MF.Log</code></a></td><td>Prefixed console logging</td></tr>
     <tr><td><a href="#utils"><code>MF.Utils</code></a></td><td>Type checks, clone, merge, diff, path access, ids, versions</td></tr>
     <tr><td><a href="#math"><code>MF.Math</code></a></td><td>Numbers, snapping, rectangles, easing</td></tr>
-    <tr><td><a href="#units"><code>MF.Units</code></a></td><td>Size expressions: <code>"240"</code>, <code>"50%"</code>, <code>"100%-240"</code>, <code>"auto"</code></td></tr>
+    <tr><td><a href="#units"><code>MF.Units</code></a></td><td>Size expressions: <code>"240"</code>, <code>"50%"</code>, <code>"100%-240"</code>, <code>"auto"</code>, functions and conditions (1.1.0)</td></tr>
     <tr><td><a href="#anchor"><code>MF.Anchor</code></a></td><td>Nine anchor points and coordinate conversion</td></tr>
     <tr><td><a href="#color"><code>MF.Color</code></a></td><td>Color parsing and conversion</td></tr>
     <tr><td><a href="#hook"><code>MF.Hook</code></a></td><td>Method overriding: <code>alias</code> / <code>before</code> / <code>after</code></td></tr>
@@ -394,8 +394,23 @@ MF.Units.resolve("50% +", 100, { fallback: 0 });                  // 0 + warning
     <tr><td><code>isValid(v)</code></td><td>Syntax check without evaluation</td></tr>
     <tr><td><code>compile(v)</code></td><td>Returns <code>base =&gt; number</code>; throws on syntax errors</td></tr>
     <tr><td><code>toPercent(px, base, digits = 2)</code></td><td><code>toPercent(408, 816) → "50%"</code></td></tr>
+    <tr><td><code>FUNCTIONS</code>, <code>CONSTANTS</code> <span class="tag">1.1.0</span></td><td>Frozen lists of expression function / constant names (for editors, autocompletion)</td></tr>
+    <tr><td><code>arity(name)</code> <span class="tag">1.1.0</span></td><td><code>{ min, max }</code> argument count of a function, or <code>null</code></td></tr>
 </table>
 <p>Division by zero yields <code>0</code>.</p>
+
+<h3>Functions, comparisons and conditions <span class="tag">1.1.0</span></h3>
+<table>
+    <tr><th>Group</th><th>Syntax</th></tr>
+    <tr><td>Operators</td><td><code>^</code> (power), <code>&lt; &gt; &lt;= &gt;= == !=</code>, <code>&amp;&amp; || !</code> (result <code>1</code> / <code>0</code>), <code>cond ? a : b</code></td></tr>
+    <tr><td>Math</td><td><code>min</code>, <code>max</code>, <code>abs</code>, <code>sign</code>, <code>floor</code>, <code>ceil</code>, <code>round(v, digits?)</code>, <code>trunc</code>, <code>sqrt</code>, <code>pow</code>, <code>exp</code>, <code>log</code>, <code>mod</code> (never negative), <code>clamp(v, a, b)</code>, <code>lerp(a, b, t)</code>, <code>step(edge, v)</code>, <code>between(v, a, b)</code>, <code>if(c, a, b)</code>, <code>hypot</code>, <code>dist(x1, y1, x2, y2)</code></td></tr>
+    <tr><td>Angles</td><td>radians: <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>asin</code>, <code>acos</code>, <code>atan</code>, <code>atan2(y, x)</code>; degrees: <code>sind</code>, <code>cosd</code>, <code>tand</code>, <code>atan2d(y, x)</code>, <code>angle(x1, y1, x2, y2)</code> (0° = right, 90° = down); <code>deg(rad)</code>, <code>rad(deg)</code></td></tr>
+    <tr><td>Constants</td><td><code>pi</code> / <code>PI</code>, <code>e</code>, <code>true</code> = 1, <code>false</code> = 0</td></tr>
+</table>
+<p>Precedence (low → high): <code>? :</code>, <code>||</code>, <code>&amp;&amp;</code>, comparisons, <code>+ -</code>, <code>* /</code>, unary <code>- !</code>, <code>^</code>. <code>if</code> and <code>? :</code> evaluate only the chosen branch. Unknown names, unknown functions and wrong argument counts are compile errors (<code>isValid</code> → <code>false</code>). Expressions valid in 1.0.0 give the same results.</p>
+<pre><code>MF.Units.resolve("clamp(50%, 200, 400)", 1000);                   // 400
+MF.Units.resolve("angle(0, 0, 10, 10)", 0);                       // 45
+MF.Units.resolve("3 &gt; 2 ? 10 : 20", 0);                           // 10</code></pre>
 
 <!-- ================================================================== -->
 <h2 id="anchor">MF.Anchor</h2>
@@ -1305,6 +1320,10 @@ MF.Deprecation.method(MF.Utils, "oldName", {
 <!-- ================================================================== -->
 <h2 id="changelog">Changelog</h2>
 <p>The full changelog with Breaking / Deprecated markers is in <a href="CHANGELOG.md"><code>CHANGELOG.md</code></a>. Summary:</p>
+<h3>1.1.0 — 2026-09-23</h3>
+<ul>
+    <li><strong>Added:</strong> <code>MF.Units</code> functions (<code>min</code>, <code>max</code>, <code>clamp</code>, <code>lerp</code>, <code>angle</code>, <code>atan2d</code>, <code>sind</code>, …), constants, <code>^</code>, comparisons, <code>&amp;&amp; || !</code>, <code>? :</code>; <code>Units.FUNCTIONS</code>, <code>Units.CONSTANTS</code>, <code>Units.arity</code>. <strong>Changed:</strong> clearer <code>MF.Units</code> error messages. Backward compatible.</li>
+</ul>
 <h3>1.0.0 — 2026-09-23</h3>
 <ul>
     <li><strong>Initial release.</strong> Foundation: <code>Core</code>, <code>Log</code>, <code>Utils</code>, <code>Math</code>, <code>Units</code>, <code>Anchor</code>, <code>Color</code>, <code>Hook</code>, <code>Events</code>, <code>Deprecation</code>, <code>Schema</code>. Game logic: <code>Condition</code>, <code>Script</code>. Storage: <code>FS</code>, <code>Data</code>, <code>Save</code>, <code>Config</code>, <code>Migration</code>, <code>History</code>, <code>Document</code> <span class="tag">experimental</span>. Text: <code>I18n</code>, <code>Text</code>. Input: <code>Input</code> (drag-and-drop <span class="tag">experimental</span>). Time: <code>Ticker</code>, <code>Tween</code>, <code>Timer</code>, <code>Queue</code>. Display and resources: <code>Layout</code> <span class="tag">experimental</span>, <code>UI</code> <span class="tag">experimental</span>, <code>Assets</code>.</li>
