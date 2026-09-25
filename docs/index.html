@@ -10,7 +10,7 @@
 
 <nav>
     <div class="title">MF_Core</div>
-    <div class="version">v1.1.0 · RPG Maker MZ</div>
+    <div class="version">v1.2.0 · RPG Maker MZ</div>
     <div class="search">
         <input id="filter" type="search" placeholder="Search functions, options…" aria-label="Search the reference" autocomplete="off">
         <kbd>/</kbd>
@@ -39,6 +39,15 @@
         <li class="group">Game logic</li>
         <li><a href="#condition">MF.Condition</a></li>
         <li><a href="#script">MF.Script</a></li>
+        <li><a href="#notetag">MF.Notetag</a></li>
+        <li><a href="#gameevents">MF.GameEvents</a></li>
+        <li><a href="#modifiers">MF.Modifiers</a></li>
+        <li><a href="#random">MF.Random</a></li>
+        <li class="group">Plugin integration</li>
+        <li><a href="#registry">MF.Registry</a></li>
+        <li><a href="#services">MF.Services</a></li>
+        <li><a href="#commands">MF.Commands</a></li>
+        <li><a href="#options">MF.Options</a></li>
         <li class="group">Storage</li>
         <li><a href="#fs">MF.FS</a></li>
         <li><a href="#data">MF.Data</a></li>
@@ -64,6 +73,7 @@
         <li><a href="#assets">MF.Assets</a></li>
         <li class="group">Reference</li>
         <li><a href="#versioning">Versioning policy</a></li>
+        <li><a href="#compat">Compatibility 1.2.0</a></li>
         <li><a href="#bus-events">Bus events</a></li>
         <li><a href="#errors">Error handling</a></li>
         <li><a href="#changelog">Changelog</a></li>
@@ -117,6 +127,14 @@
     <tr><td><a href="#layout"><code>MF.Layout</code></a> <span class="tag">experimental</span></td><td>Units + Anchor layout for any display object</td></tr>
     <tr><td><a href="#ui"><code>MF.UI</code></a> <span class="tag">experimental</span></td><td>Window / Sprite / Container with built-in layout</td></tr>
     <tr><td><a href="#assets"><code>MF.Assets</code></a></td><td>Batch preloading with progress and safe failures</td></tr>
+    <tr><td><a href="#registry"><code>MF.Registry</code></a> <span class="tag">1.2.0</span></td><td>Named extension registries (actions, element types, …)</td></tr>
+    <tr><td><a href="#services"><code>MF.Services</code></a> <span class="tag">1.2.0</span></td><td>Versioned APIs between plugins without hard dependencies</td></tr>
+    <tr><td><a href="#notetag"><code>MF.Notetag</code></a> <span class="tag">1.2.0</span></td><td>Typed notetags, blocks, values collected from a battler</td></tr>
+    <tr><td><a href="#gameevents"><code>MF.GameEvents</code></a> <span class="tag">1.2.0</span></td><td><code>game:*</code> events: switches, variables, gold, items, battle, map</td></tr>
+    <tr><td><a href="#commands"><code>MF.Commands</code></a> <span class="tag">1.2.0</span></td><td>Plugin commands with typed arguments and async wait</td></tr>
+    <tr><td><a href="#options"><code>MF.Options</code></a> <span class="tag">1.2.0</span></td><td>Shared <code>Scene_Options</code> entries stored in <code>MF.Config</code></td></tr>
+    <tr><td><a href="#modifiers"><code>MF.Modifiers</code></a> <span class="tag">1.2.0</span></td><td>Stacking stat modifiers with priorities</td></tr>
+    <tr><td><a href="#random"><code>MF.Random</code></a> <span class="tag">1.2.0</span></td><td>Seeded random numbers, streams saved with the game</td></tr>
 </table>
 
 <!-- ================================================================== -->
@@ -143,7 +161,7 @@
 
 <h3 id="pitfalls-time">Time and animation</h3>
 <ul class="pitfalls-list">
-    <li id="pitfall-frames"><strong>Durations are frames, bound to the scene</strong><code>duration: 60</code> = one second at 60 fps. Tweens, timers and <code>Timer.until</code> pause while the game window is inactive and are cancelled on scene change (Promises resolve <code>false</code>). Use <code>persistent: true</code> to survive scene changes.<div class="see">See: <a href="#ticker">MF.Ticker</a>, <a href="#tween">MF.Tween</a>, <a href="#timer">MF.Timer</a></div></li>
+    <li id="pitfall-frames"><strong>Durations are frames, bound to the scene</strong>Work created in a scene's constructor or <code>initialize()</code> belongs to the <em>previous</em> scene (it is still current) — pass <code>{ scene: this }</code> (1.2.0) or start it in <code>create()</code>. <code>duration: 60</code> = one second at 60 fps. Tweens, timers and <code>Timer.until</code> pause while the game window is inactive and are cancelled on scene change (Promises resolve <code>false</code>). Use <code>persistent: true</code> to survive scene changes.<div class="see">See: <a href="#ticker">MF.Ticker</a>, <a href="#tween">MF.Tween</a>, <a href="#timer">MF.Timer</a></div></li>
     <li id="pitfall-bindscene"><strong><code>Assets.bindScene</code> must be called before the scene starts</strong>Call it in <code>create()</code>. Once the scene has started, <code>isReady()</code> is no longer consulted.<div class="see">See: <a href="#assets">MF.Assets</a></div></li>
     <li id="pitfall-audio"><strong>Preloaded audio is decoded again on playback</strong>RPG Maker creates a new buffer for every BGM/BGS/ME/SE playback. Preloading only warms the file cache — except static SE (<code>static: true</code>).<div class="see">See: <a href="#assets">MF.Assets</a></div></li>
 </ul>
@@ -304,7 +322,7 @@ MF.Utils.diff({ w: { x: 1, y: 2 } }, { w: { x: 5, y: 2 } }); // { w: { x: 5 } }<
     <tr><th>Function</th><th>Description</th></tr>
     <tr><td><code>uid(prefix = "mf")</code></td><td>Session-unique id, e.g. <code>mf_lx3k2a1</code></td></tr>
     <tr><td><code>uniqueName(base, existing)</code></td><td><code>"window"</code>, <code>"window_2"</code>, … not present in <code>existing</code> (array or Set)</td></tr>
-    <tr id="utils-parseParams"><td><code>parseParams(value)</code></td><td>Recursively parses MZ plugin parameters: JSON strings, <code>"true"</code>/<code>"false"</code>, numbers</td></tr>
+    <tr id="utils-parseParams"><td><code>parseParams(value)</code></td><td>Recursively parses MZ plugin parameters: JSON strings, <code>"true"</code>/<code>"false"</code>, numbers. Since 1.2.0 strings with leading zeros (<code>"007"</code>, <code>"01"</code>) stay strings</td></tr>
     <tr><td><code>compareVersions(a, b)</code></td><td><code>-1</code>, <code>0</code> or <code>1</code> for <code>"1.2.3"</code>-style versions</td></tr>
     <tr><td><code>debounce(fn, ms)</code></td><td>Debounced function with <code>.cancel()</code></td></tr>
     <tr><td><code>parseJson(text, fallback = null)</code></td><td><code>JSON.parse</code> that never throws</td></tr>
@@ -1239,6 +1257,183 @@ if (!ok) console.warn("missing:", failed.map(f =&gt; f.item.name));</code></pre>
 <div class="note">A failed image is removed from <code>ImageManager</code>'s cache. Otherwise RPG Maker would later throw its load-error screen from <code>ImageManager.isReady()</code> in an unrelated scene.</div>
 
 <!-- ================================================================== -->
+<h2 id="registry">MF.Registry <span class="tag">1.2.0</span></h2>
+<p>Named registries for extension points: button actions, element types, condition types of your own plugin. Other plugins add entries without patching your code.</p>
+<pre><code>const actions = MF.Registry.define("MF_QuestLog.actions", {
+    validate: value => typeof value === "function"   // false → entry rejected with an error
+});
+const remove = actions.add("openLog", () => SceneManager.push(Scene_QuestLog), "MF_QuestLogAddon");
+actions.get("openLog")();
+actions.on("add", (id, value, owner) => { /* rebuild menus */ });</code></pre>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr id="registry-define"><td><code>MF.Registry.define(name, { validate?, override? })</code></td><td>Returns the registry, creating it on the first call (all plugins get the same object)</td></tr>
+    <tr><td><code>MF.Registry.get(name)</code>, <code>has(name)</code>, <code>names()</code></td><td>Lookup without creating</td></tr>
+    <tr><td><code>add(id, value, owner)</code></td><td>→ function that removes this entry. Replacing an existing id warns unless <code>override: true</code></td></tr>
+    <tr><td><code>get(id, fallback)</code>, <code>has(id)</code>, <code>owner(id)</code>, <code>remove(id)</code></td><td>Access</td></tr>
+    <tr><td><code>ids()</code>, <code>list()</code>, <code>size</code></td><td><code>list()</code> → <code>[{ id, value, owner }]</code></td></tr>
+    <tr><td>events <code>add</code>, <code>remove</code></td><td>The registry is an <a href="#events">EventEmitter</a></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="services">MF.Services <span class="tag">1.2.0</span></h2>
+<p>A plugin publishes an API under a name and a version; other plugins use it if it is present. No load-order or hard <code>require</code> is needed for optional integrations.</p>
+<pre><code>// MF_QuestLog
+MF.Services.provide("quest", { start, isDone }, { version: "1.0.0", owner: "MF_QuestLog" });
+
+// Another plugin — optional integration
+const quest = MF.Services.use("quest", "1.0.0");   // null if missing or older
+if (quest) quest.start("q1");
+
+// Any load order
+MF.Services.when("quest").then(api => api.start("q1"));</code></pre>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>provide(name, api, { version, owner })</code></td><td>Publishes (replacing warns); resolves pending <code>when()</code>; emits <code>mf:serviceProvided (name, api)</code></td></tr>
+    <tr><td><code>use(name, minVersion?)</code></td><td>API or <code>null</code></td></tr>
+    <tr><td><code>require(requester, name, minVersion?)</code></td><td>API or a readable error (for mandatory integrations)</td></tr>
+    <tr><td><code>has(name, minVersion?)</code></td><td>Boolean</td></tr>
+    <tr><td><code>when(name, minVersion?)</code></td><td>Promise; rejects if the provided version is too old</td></tr>
+    <tr><td><code>list()</code></td><td><code>[{ name, version, owner }]</code></td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="notetag">MF.Notetag <span class="tag">1.2.0</span></h2>
+<p>Notetag parsing with a cache (by note text). Tag names are case-insensitive, tags may repeat.</p>
+<pre><code>&lt;Price: 120&gt;          → 120
+&lt;Unique&gt;              → true
+&lt;Element: fire, ice&gt;  → "fire, ice" / ["fire", "ice"] with type "list"
+&lt;Description&gt;         block: the text between the tags
+Line 1
+Line 2
+&lt;/Description&gt;</code></pre>
+<pre><code>MF.Notetag.get($dataItems[5], "Price", { type: "number", default: 0 });
+MF.Notetag.getAll(item, "Element", { type: "list" });          // [["fire", "ice"], ...]
+MF.Notetag.get(event, "Loot", { type: "json", default: [] });  // Game_Event → event note
+MF.Notetag.sum(battler, "CritBonus");                          // actor + class + equips + states</code></pre>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>get(obj, tag, options)</code></td><td>First value. <code>obj</code>: database object, note string, <code>Game_Actor</code>, <code>Game_Enemy</code>, <code>Game_Event</code></td></tr>
+    <tr><td><code>getAll(obj, tag, options)</code></td><td>All values of a repeated tag</td></tr>
+    <tr><td><code>has(obj, tag)</code>, <code>parse(obj)</code></td><td><code>parse</code> → <code>{ lowerTag: [raw] }</code> (raw is <code>true</code> or a string)</td></tr>
+    <tr><td><code>sources(battler)</code></td><td>Actor, class, equips, states — or enemy, states</td></tr>
+    <tr><td><code>collect(battler, tag, options)</code>, <code>sum(battler, tag, base)</code></td><td>Values from all sources</td></tr>
+    <tr><td><code>clearCache()</code></td><td>After changing <code>note</code> at runtime without changing its text reference — normally not needed</td></tr>
+</table>
+<table>
+    <tr><th>Option</th><th>Description</th></tr>
+    <tr><td><code>type</code></td><td><code>auto</code> (number / boolean / string), <code>string</code> (trimmed), <code>text</code> (as is), <code>number</code>, <code>int</code>, <code>boolean</code> (<code>false/off/no/0</code> → false), <code>list</code>, <code>numbers</code>, <code>json</code></td></tr>
+    <tr><td><code>default</code></td><td>Missing tag or unparsable value</td></tr>
+    <tr><td><code>separator</code></td><td>For <code>list</code> / <code>numbers</code>, default <code>","</code></td></tr>
+    <tr><td><code>schema</code></td><td><a href="#schema">MF.Schema</a> normalization; invalid → <code>default</code> + warning</td></tr>
+</table>
+
+<!-- ================================================================== -->
+<h2 id="gameevents">MF.GameEvents <span class="tag">1.2.0</span></h2>
+<p>Standard game events on <code>MF.Events.bus</code> with the <code>game:</code> prefix, so plugins do not hook the same MZ methods. Change events (switches, variables, gold, items, level, states) do no extra work while nobody listens.</p>
+<pre><code>const off = MF.GameEvents.on("variableChanged", (id, value, old) => { ... });
+MF.GameEvents.onScene(this, "goldChanged", this.refreshGold);   // this = scene; removed on terminate
+MF.Events.bus.on("game:battleEnd", result => { ... });           // same event</code></pre>
+<table>
+    <tr><th>Event</th><th>Arguments</th></tr>
+    <tr><td><code>newGame</code>, <code>saveLoaded</code></td><td>—</td></tr>
+    <tr><td><code>switchChanged</code>, <code>variableChanged</code></td><td><code>(id, value, old)</code> — only when the value actually changes</td></tr>
+    <tr><td><code>goldChanged</code></td><td><code>(value, old)</code></td></tr>
+    <tr><td><code>itemChanged</code></td><td><code>(item, count, old)</code> — items, weapons, armors</td></tr>
+    <tr><td><code>actorLevelChanged</code></td><td><code>(actor, level, old)</code></td></tr>
+    <tr><td><code>stateAdded</code>, <code>stateRemoved</code></td><td><code>(battler, stateId)</code></td></tr>
+    <tr><td><code>battleStart</code>, <code>turnStart</code>, <code>turnEnd</code></td><td>—</td></tr>
+    <tr><td><code>battleEnd</code></td><td><code>(result)</code>: 0 win, 1 escape, 2 lose</td></tr>
+    <tr><td><code>actionEnd</code></td><td><code>(subject, action)</code></td></tr>
+    <tr><td><code>mapLoaded</code></td><td><code>(mapId)</code></td></tr>
+    <tr><td><code>transfer</code></td><td><code>(mapId, x, y)</code></td></tr>
+    <tr><td><code>eventStarted</code></td><td><code>(gameEvent)</code></td></tr>
+    <tr><td><code>messageAdded</code></td><td><code>(text)</code> — once per message <em>line</em></td></tr>
+</table>
+<p>Functions: <code>on</code>, <code>once</code>, <code>emit</code> (your own <code>game:*</code> events), <code>onScene(scene, name, fn, context = scene)</code>.</p>
+
+<!-- ================================================================== -->
+<h2 id="commands">MF.Commands <span class="tag">1.2.0</span></h2>
+<p>Plugin commands with typed arguments. A handler that returns a Promise makes the event wait for it — no manual <code>setWaitMode</code>.</p>
+<pre><code>MF.Commands.register("MF_QuestLog", "StartQuest", async function(args) {
+    // this — Game_Interpreter (null when called from code)
+    await MF.Text.show(`Quest ${args.id} started`);
+}, {
+    id:    { type: "string", required: true },
+    stage: { type: "integer", default: 0 }     // "3" → 3
+});
+
+await MF.Commands.call("MF_QuestLog", "StartQuest", { id: "q1" });</code></pre>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>register(plugin, command, handler, schema?)</code></td><td>Registers through <code>PluginManager.registerCommand</code>. <code>schema</code> — <a href="#schema">properties</a> of the arguments object; invalid arguments are logged, defaults applied</td></tr>
+    <tr><td><code>call(plugin, command, args, interpreter?)</code></td><td>→ Promise with the handler's result</td></tr>
+    <tr><td><code>has(plugin, command)</code></td><td>Boolean</td></tr>
+</table>
+<div class="note">The wait is not saved: after loading a save the event continues without waiting. Errors of async handlers are logged and the event continues.</div>
+
+<!-- ================================================================== -->
+<h2 id="options">MF.Options <span class="tag">1.2.0</span></h2>
+<p>Adds entries to <code>Scene_Options</code> without patching <code>Window_Options</code> in every plugin. Values are <a href="#config">MF.Config</a> keys (registered automatically); the options window grows with the entries.</p>
+<pre><code>MF.Options.add({ key: "MF_QuestLog.tracker", label: "Quest tracker", type: "boolean", default: true });
+MF.Options.add({ key: "MF_Hud.scale", label: "MF_Hud:options.scale", type: "number",
+                 min: 50, max: 150, step: 10, default: 100, format: v => v + "%" });
+MF.Options.add({ key: "MF_Hud.position", label: "HUD", type: "list",
+                 values: [{ value: "top", label: "Top" }, { value: "bottom", label: "Bottom" }] });
+
+MF.Config.get("MF_QuestLog.tracker");   // read the value anywhere</code></pre>
+<table>
+    <tr><th>Field</th><th>Description</th></tr>
+    <tr><td><code>key</code></td><td>Config key (required)</td></tr>
+    <tr><td><code>label</code></td><td>String, <a href="#i18n">I18n</a> key <code>"ns:key"</code> or function</td></tr>
+    <tr><td><code>type</code></td><td><code>boolean</code> | <code>number</code> | <code>volume</code> (0–100, step 20, like MZ) | <code>list</code></td></tr>
+    <tr><td><code>default</code></td><td>Default value</td></tr>
+    <tr><td><code>min</code>, <code>max</code>, <code>step</code>, <code>wrap</code></td><td>For <code>number</code> / <code>volume</code>; <code>wrap</code> also for <code>list</code>. OK always wraps</td></tr>
+    <tr><td><code>values</code></td><td>For <code>list</code>: <code>[{ value, label }]</code> or plain values</td></tr>
+    <tr><td><code>format(value)</code></td><td>Status text</td></tr>
+    <tr><td><code>visible()</code></td><td>Hide the entry</td></tr>
+    <tr><td><code>after</code></td><td>MZ symbol to insert after (<code>"commandRemember"</code>, <code>"seVolume"</code>, …); default — at the end</td></tr>
+</table>
+<p>Also: <code>remove(key)</code>, <code>list()</code>, <code>symbol(key)</code> (command symbol <code>"mf:" + key</code>). Changes emit <code>mf:configChanged</code>; MZ saves the config when the options scene closes.</p>
+
+<!-- ================================================================== -->
+<h2 id="modifiers">MF.Modifiers <span class="tag">1.2.0</span></h2>
+<p>Stacking modifiers instead of competing hooks. Every plugin adds a function; they run in <code>priority</code> order (lower first, then registration order). A non-number result is ignored for numeric stats; errors are logged and skipped.</p>
+<pre><code>const off = MF.Modifiers.add("param", (value, { battler, paramId }) =>
+    paramId === 2 &amp;&amp; battler.isStateAffected(10) ? value * 1.25 : value,
+    { owner: "MF_Rage", priority: 100 });
+
+MF.Modifiers.add("skillMpCost", (cost, { skill }) => skill.stypeId === 1 ? cost / 2 : cost);
+const dmg = MF.Modifiers.apply("myDamage", base, { target });   // your own stat</code></pre>
+<table>
+    <tr><th>Stat</th><th>ctx</th><th>Result</th></tr>
+    <tr><td><code>param</code></td><td><code>{ battler, paramId }</code></td><td>Rounded, clamped by <code>paramMin</code>/<code>paramMax</code></td></tr>
+    <tr><td><code>xparam</code>, <code>sparam</code></td><td><code>{ battler, xparamId }</code> / <code>{ battler, sparamId }</code></td><td>Rate as is</td></tr>
+    <tr><td><code>skillMpCost</code>, <code>skillTpCost</code></td><td><code>{ battler, skill }</code></td><td>Floored, ≥ 0</td></tr>
+    <tr><td><code>expGain</code>, <code>goldGain</code></td><td><code>{ value }</code></td><td>Battle rewards; rounded, ≥ 0</td></tr>
+</table>
+<p>Functions: <code>add(stat, fn, { priority, owner })</code> → remove function, <code>apply(stat, value, ctx)</code>, <code>has(stat)</code>, <code>list(stat?)</code>. Without modifiers the built-in stats return the MZ value unchanged.</p>
+
+<!-- ================================================================== -->
+<h2 id="random">MF.Random <span class="tag">1.2.0</span></h2>
+<pre><code>const rng = MF.Random.create("dungeon-42");   // same seed → same sequence
+rng.int(1, 6); rng.chance(0.1); rng.pick(list); rng.shuffle(list);
+rng.weighted([{ id: 1, weight: 5 }, { id: 2, weight: 1 }]);
+
+MF.Random.stream("loot").int(1, 100);   // state stored in the save: no save-scumming
+MF.Random.int(1, 6);                    // Math.random with the same helpers</code></pre>
+<table>
+    <tr><th>Function</th><th>Description</th></tr>
+    <tr><td><code>create(seed)</code></td><td>Independent generator (mulberry32). Seed: number or string</td></tr>
+    <tr><td><code>stream(name, seed?)</code></td><td>Named generator whose state is saved in <code>MF.Save</code> (key <code>MF_Core.random</code>); new game → new state (from <code>seed</code> if given)</td></tr>
+    <tr><td><code>next()</code>, <code>float(min, max)</code>, <code>int(min, max)</code></td><td><code>int</code> — both bounds inclusive; <code>int(n)</code> = 0…n</td></tr>
+    <tr><td><code>chance(p)</code>, <code>pick(list)</code>, <code>shuffle(list)</code></td><td><code>shuffle</code> returns a copy</td></tr>
+    <tr><td><code>weighted(list, weight = "weight")</code></td><td>Property name or function; zero/negative weights are skipped</td></tr>
+    <tr><td><code>state</code>, <code>seed(seed)</code></td><td>Read/restore the generator state</td></tr>
+    <tr><td><code>hash(value)</code></td><td>String → 32-bit seed</td></tr>
+</table>
+
+<!-- ================================================================== -->
 <h2 id="versioning">Versioning policy</h2>
 <p>MF_Core follows <a href="https://semver.org/">Semantic Versioning</a>. Several plugins are developed against it in parallel, so a silent change to any public function breaks all of them at once. The rules below are mandatory.</p>
 <table>
@@ -1276,6 +1471,22 @@ MF.Deprecation.method(MF.Utils, "oldName", {
 <p>Every public API change is recorded in <a href="CHANGELOG.md"><code>CHANGELOG.md</code></a> in the same commit, tagged <em>Added</em>, <em>Changed</em>, <em>Deprecated</em>, <em>Removed ⚠</em>, <em>Breaking ⚠</em>, <em>Experimental change</em> or <em>Fixed</em>.</p>
 
 <!-- ================================================================== -->
+<h2 id="compat">Compatibility of 1.2.0 with 1.1.0</h2>
+<p>No function was removed or renamed; every 1.1.0 signature works as before. Changes of existing behavior:</p>
+<table>
+    <tr><th>Area</th><th>Before</th><th>Now</th><th>Impact</th></tr>
+    <tr><td><code>Utils.parseParams</code> / <code>Core.parameters</code></td><td><code>"007"</code> → <code>7</code></td><td><code>"007"</code> stays a string; <code>"0"</code>, <code>"10"</code>, <code>"0.5"</code>, <code>"-3"</code> are still numbers</td><td>Only parameters with leading zeros. A schema with <code>type: "number"</code> still converts them</td></tr>
+    <tr><td><code>Script.run</code> / <code>compile</code></td><td>Code with <code>;</code> or a line break ran as statements and returned <code>undefined</code></td><td>Tried as one expression first, then as statements</td><td>Actions: same effect. Conditions like <code>"a &amp;&amp;\n b"</code> now work; <code>"x = 5;"</code> now returns 5 instead of <code>undefined</code></td></tr>
+    <tr><td><code>History.isDirty</code>, nested <code>beginBatch</code></td><td>Wrong after undo + edit; inner batch closed the outer one</td><td>Correct</td><td>Bug fix</td></tr>
+    <tr><td><code>Units.resolve</code></td><td>Warning every call for an invalid expression</td><td>Once per error</td><td>Less console output</td></tr>
+    <tr><td><code>Text.wrap</code></td><td>Froze on a character wider than the line</td><td>Such a character gets its own line</td><td>Bug fix</td></tr>
+    <tr><td><code>Input.modifiers</code> / <code>isShortcut</code></td><td>From tracked keys only</td><td>From key-event flags</td><td>Bug fix</td></tr>
+    <tr><td>Double loading</td><td>Hooks installed twice</td><td>Second copy ignored with a warning</td><td>—</td></tr>
+</table>
+<p>New MZ hooks (all through <code>MF.Hook</code>, calling the original): <code>Game_Switches/Game_Variables.setValue</code>, <code>Game_Party.gainGold/gainItem</code>, <code>Game_Actor.changeExp</code>, <code>Game_Battler.addState/removeState</code>, <code>Game_BattlerBase.param/xparam/sparam/skillMpCost/skillTpCost</code>, <code>BattleManager.startBattle/startTurn/endTurn/endAction/endBattle/makeRewards</code>, <code>Game_Map.setup</code>, <code>Game_Player.performTransfer</code>, <code>Game_Event.start</code>, <code>Game_Message.add</code>, <code>Game_Interpreter.updateWait/clear</code>, <code>Window_Options</code>, <code>Scene_Options.maxCommands</code>, <code>Scene_Base.terminate</code>, <code>DataManager.setupNewGame</code>. Without listeners, modifiers or options they return the original results. A plugin below MF_Core that <em>replaces</em> one of these methods without calling the original disables only the matching new feature.</p>
+<p>Save files: a new key <code>MF_Core.random</code> appears in <code>contents.mf</code>. Saves are readable by 1.1.0 (unknown keys are kept as orphans), and 1.1.0 saves load in 1.2.0.</p>
+
+<!-- ================================================================== -->
 <h2 id="bus-events">Bus events</h2>
 <p>Emitted on <code>MF.Events.bus</code>:</p>
 <table>
@@ -1291,6 +1502,8 @@ MF.Deprecation.method(MF.Utils, "oldName", {
     <tr><td><code>mf:configChanged</code></td><td><code>(key, value, old)</code></td><td>A config value changed</td></tr>
     <tr><td><code>mf:localeChanged</code></td><td><code>(locale, old)</code></td><td>The current locale changed</td></tr>
     <tr><td><code>mf:inputDeviceChanged</code></td><td><code>(device, old)</code></td><td>The player switched between keyboard, mouse, touch and gamepad</td></tr>
+    <tr><td><code>mf:serviceProvided</code></td><td><code>(name, api)</code></td><td>A service was published (1.2.0)</td></tr>
+    <tr><td><code>game:*</code></td><td>see <a href="#gameevents">MF.GameEvents</a></td><td>Game events (1.2.0)</td></tr>
 </table>
 
 <!-- ================================================================== -->
@@ -1301,7 +1514,10 @@ MF.Deprecation.method(MF.Utils, "oldName", {
     <tr><td>Event listeners</td><td>Caught and logged per call</td></tr>
     <tr><td>Conditions</td><td><code>false</code>, logged once per unique condition</td></tr>
     <tr><td>Scripts</td><td>Fallback value, logged once per snippet, bus event, <code>issues()</code></td></tr>
-    <tr><td>Units</td><td>Fallback value, warning</td></tr>
+    <tr><td>Units</td><td>Fallback value, warning once per error</td></tr>
+    <tr><td>Notetags</td><td>Unparsable value → <code>default</code>; schema errors warned</td></tr>
+    <tr><td>Commands</td><td>Invalid arguments warned, defaults applied; sync errors propagate (error screen), async errors logged</td></tr>
+    <tr><td>Modifiers, service waiters</td><td>Failing modifier logged and skipped; <code>when()</code> rejects on a too old version</td></tr>
     <tr><td>Schema / plugin parameters</td><td>Error list; <code>Core.parameters</code> logs one warning with all fields; <code>assert</code> throws</td></tr>
     <tr><td>Data files</td><td>See <a href="#data-errors">MF.Data error handling</a></td></tr>
     <tr><td>Save data</td><td>Raw data kept on migration errors, <code>mf:saveError</code></td></tr>
@@ -1320,6 +1536,12 @@ MF.Deprecation.method(MF.Utils, "oldName", {
 <!-- ================================================================== -->
 <h2 id="changelog">Changelog</h2>
 <p>The full changelog with Breaking / Deprecated markers is in <a href="CHANGELOG.md"><code>CHANGELOG.md</code></a>. Summary:</p>
+<h3>1.2.0 — 2026-09-25</h3>
+<ul>
+    <li><strong>Added:</strong> <a href="#registry"><code>MF.Registry</code></a>, <a href="#services"><code>MF.Services</code></a>, <a href="#notetag"><code>MF.Notetag</code></a>, <a href="#gameevents"><code>MF.GameEvents</code></a>, <a href="#commands"><code>MF.Commands</code></a>, <a href="#options"><code>MF.Options</code></a>, <a href="#modifiers"><code>MF.Modifiers</code></a>, <a href="#random"><code>MF.Random</code></a>; <code>options.scene</code> for Ticker / Tween / Timer.</li>
+    <li><strong>Changed:</strong> <code>parseParams</code> keeps leading-zero strings; <code>Script</code> evaluates multi-line code as an expression first. See <a href="#compat">compatibility</a>.</li>
+    <li><strong>Fixed:</strong> <code>Text.wrap</code> freeze and CRLF, <code>Units</code> warning spam, <code>History.isDirty</code> and nested batches, shortcut modifiers, double loading.</li>
+</ul>
 <h3>1.1.0 — 2026-09-23</h3>
 <ul>
     <li><strong>Added:</strong> <code>MF.Units</code> functions (<code>min</code>, <code>max</code>, <code>clamp</code>, <code>lerp</code>, <code>angle</code>, <code>atan2d</code>, <code>sind</code>, …), constants, <code>^</code>, comparisons, <code>&amp;&amp; || !</code>, <code>? :</code>; <code>Units.FUNCTIONS</code>, <code>Units.CONSTANTS</code>, <code>Units.arity</code>. <strong>Changed:</strong> clearer <code>MF.Units</code> error messages. Backward compatible.</li>

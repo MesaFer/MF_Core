@@ -2858,7 +2858,7 @@
                     if (--left > 0) return true;
                     resolve(true);
                     return false;
-                }, { persistent: options.persistent, onCancel: () => resolve(false) });
+                }, { persistent: options.persistent, scene: options.scene, onCancel: () => resolve(false) });
             });
         },
         /** Calls fn after n frames. Returns { cancel() }. */
@@ -2915,7 +2915,7 @@
                         return false;
                     }
                     return true;
-                }, { persistent: options.persistent, onCancel: () => resolve(false) });
+                }, { persistent: options.persistent, scene: options.scene, onCancel: () => resolve(false) });
             });
         }
     };
@@ -5173,7 +5173,7 @@
                 min: Utils.isNumber(def.min) ? def.min : 0,
                 max: Utils.isNumber(def.max) ? def.max : type === "volume" ? 100 : 10,
                 step: Utils.isNumber(def.step) && def.step > 0 ? def.step : type === "volume" ? 20 : 1,
-                wrap: def.wrap !== undefined ? !!def.wrap : type !== "number",
+                wrap: !!def.wrap,
                 values: Array.isArray(def.values) ? def.values.map(v => (Utils.isObject(v) ? v : { value: v, label: String(v) })) : [],
                 format: Utils.isFunction(def.format) ? def.format : null,
                 visible: Utils.isFunction(def.visible) ? def.visible : null,

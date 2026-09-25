@@ -76,6 +76,13 @@ _Nothing yet._
 - `MF.Random` — seeded generators (`create(seed)`, mulberry32; `int`, `float`, `chance`, `pick`, `shuffle`, `weighted`, `state`) and named streams `stream(name, seed)` whose state is stored in the save file;   `Math.random`-based helpers with the same API.
 - Ticker / Tween / Timer: `options.scene` — bind work created in a scene's `initialize` to that scene.
 
+### Changed
+No API was removed or renamed; all 1.1.0 signatures work unchanged. Behavior changes (backward compatible for normal use):
+- `MF.Utils.parseParams` (and `MF.Core.parameters`): strings with leading zeros (`"007"`, `"01"`) stay strings; `"0"`, `"10"`, `"0.5"`, `"-3"` are still numbers. A schema with `type: "number"` still converts them.
+- `MF.Script.run` / `compile`: code containing `;` or a line break is first compiled as one expression (`return (…)`) and only then as a statement block. Actions behave the same; `"x = 5;"` now returns `5` instead of `undefined`.
+- New MZ hooks (through `MF.Hook`, always calling the original; without listeners / modifiers / options the original results are returned): see the compatibility section of the reference.
+- Save files contain a new key `MF_Core.random`; 1.1.0 keeps it as unknown data, 1.1.0 saves load normally.
+
 ### Fixed
 - `MF.Text.wrap` froze the game when a single character was wider than the line (narrow window, `innerWidth` 0, large `\FS`); CRLF line breaks are now split correctly.
 - `MF.Script`: expressions containing a line break or `;` (e.g. pasted with CRLF, `x === ";"`) returned `undefined`; they are now evaluated as expressions, falling back to a statement block.

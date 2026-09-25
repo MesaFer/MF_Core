@@ -4,7 +4,7 @@ Base library for the **MF_\*** plugin family for **RPG Maker MZ**.
 
 MF_Core provides a shared foundation — plugin registration with version checks, safe hooks, events, data files, save/config storage, localization, text codes, input, tweens, layout and more — so that MF_* plugins stay small and compatible with each other.
 
-- **Version:** 1.0.0
+- **Version:** 1.2.0 (backward compatible with 1.0.0 / 1.1.0 — see the [changelog](docs/CHANGELOG.md))
 - **Engine:** RPG Maker MZ
 - **Author:** MesaFer
 - **itch.io:** https://mesafer.itch.io/rpgmaker-mz-mf-core-plugin
@@ -58,6 +58,14 @@ All APIs live in the global `MF` namespace.
 | `MF.Layout` | Units + Anchor layout *(experimental)* |
 | `MF.UI` | Window / Sprite / Container with layout *(experimental)* |
 | `MF.Document` | Editable JSON document: undo + validation + save *(experimental)* |
+| `MF.Registry` | Named extension registries *(1.2.0)* |
+| `MF.Services` | Versioned plugin-to-plugin APIs: `provide` / `use` / `when` *(1.2.0)* |
+| `MF.Notetag` | Typed notetags, blocks, values collected from a battler *(1.2.0)* |
+| `MF.GameEvents` | `game:*` events: switches, variables, gold, items, battle, map *(1.2.0)* |
+| `MF.Commands` | Plugin commands with typed arguments and async wait *(1.2.0)* |
+| `MF.Options` | Shared `Scene_Options` entries stored in `MF.Config` *(1.2.0)* |
+| `MF.Modifiers` | Stacking stat modifiers with priorities *(1.2.0)* |
+| `MF.Random` | Seeded random numbers, streams saved with the game *(1.2.0)* |
 
 **Text codes:** `\TR[ns:key]` `\SAVE[key:path]` `\W[n]` `\SE[name,vol,pitch,pan]` `\FACE[name,index]` `\SPD[n]`
 
