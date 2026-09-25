@@ -16,7 +16,7 @@
 //-----------------------------------------------------------------------------
 /*:
  * @target MZ
- * @plugindesc [v1.1.0] MF Core — base library for MF_* plugins.
+ * @plugindesc [v1.2.0] MF Core — base library for MF_* plugins.
  * @author MesaFer
  * @url
  *
@@ -36,7 +36,7 @@
  * @default false
  * @desc Allow executing JS code from data ("script" conditions and actions).
  *
- * @help MF_Core.js  v1.1.0
+ * @help MF_Core.js  v1.2.0
  * ============================================================================
  * Base library for the MF_* plugin family.
  * Must be placed ABOVE all other MF_* plugins in the plugin list.
@@ -75,6 +75,14 @@
  *   MF.Input       — actions, raw keys, shortcuts, pointer, drag  (drag: [experimental])
  *   MF.Assets      — batch preloading with progress
  *   MF.Document    — editable JSON document: undo + validation + save [experimental]
+ *   MF.Registry    — named extension registries
+ *   MF.Services    — plugin-to-plugin APIs with versions (provide/use/when)
+ *   MF.Notetag     — typed notetags, blocks, battler sources
+ *   MF.GameEvents  — game:* events (variables, gold, items, battle, map...)
+ *   MF.Commands    — plugin commands with argument schema and async wait
+ *   MF.Options     — shared Scene_Options entries stored in MF.Config
+ *   MF.Modifiers   — stacking stat modifiers (param, costs, rewards)
+ *   MF.Random      — seeded random, streams saved with the game
  *
  *   Text codes: \TR[ns:key] \SAVE[key:path] \W[n] \SE[name,vol,pitch,pan]
  *               \FACE[name,index] \SPD[n]
@@ -117,9 +125,13 @@
     "use strict";
 
     const PLUGIN_NAME = "MF_Core";
-    const PLUGIN_VERSION = "1.1.0";
+    const PLUGIN_VERSION = "1.2.0";
 
     const MF = (window.MF = window.MF || {});
+    if (MF.Core && MF.Core.VERSION) {
+        console.warn(`[MF_Core] loaded twice (v${MF.Core.VERSION} is already active); the second copy is ignored.`);
+        return;
+    }
 
     //=========================================================================
     // Parameters
@@ -343,7 +355,7 @@
                 if (trimmed === "") return value;
                 if (trimmed === "true") return true;
                 if (trimmed === "false") return false;
-                if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+                if (/^-?(0|[1-9]\d*)(\.\d+)?$/.test(trimmed)) return Number(trimmed);
                 if (/^[[{"]/.test(trimmed)) {
                     try {
                         return this.parseParams(JSON.parse(trimmed));
@@ -602,6 +614,7 @@
     //=========================================================================
 
     const unitCache = new Map();
+    const unitWarned = new Set();
 
     function tokenizeUnits(src) {
         const tokens = [];
@@ -838,8 +851,15 @@
         compile(value) {
             const key = String(value);
             let fn = unitCache.get(key);
+            if (fn instanceof Error) throw fn;
             if (!fn) {
-                fn = compileUnits(key);
+                if (unitCache.size > 1000) unitCache.clear();
+                try {
+                    fn = compileUnits(key);
+                } catch (e) {
+                    unitCache.set(key, e);
+                    throw e;
+                }
                 unitCache.set(key, fn);
             }
             return fn;
@@ -864,7 +884,11 @@
                 try {
                     result = this.compile(value)(base || 0);
                 } catch (e) {
-                    Log.warn(PLUGIN_NAME, e.message);
+                    if (!unitWarned.has(e.message)) {
+                        if (unitWarned.size > 1000) unitWarned.clear();
+                        unitWarned.add(e.message);
+                        Log.warn(PLUGIN_NAME, e.message);
+                    }
                     result = fallback;
                 }
             }
@@ -1210,8 +1234,15 @@
             const key = `${argNames.join(",")}|${code}`;
             let fn = scriptCache.get(key);
             if (!fn) {
-                const body = /^\s*(return\b|[\s\S]*[;\n])/.test(code) ? code : `return (${code});`;
-                fn = new Function(...argNames, body);
+                if (/^\s*return\b/.test(code)) {
+                    fn = new Function(...argNames, code);
+                } else {
+                    try {
+                        fn = new Function(...argNames, `return (${code.replace(/;\s*$/, "")}\n);`);
+                    } catch (e) {
+                        fn = new Function(...argNames, code);
+                    }
+                }
                 scriptCache.set(key, fn);
             }
             return fn;
@@ -1782,6 +1813,7 @@
                 this._batch.push(command);
                 return;
             }
+            if (this._savedIndex > this._undo.length) this._savedIndex = -1; // saved state was in the discarded redo branch
             const last = this._undo[this._undo.length - 1];
             if (last && Utils.isFunction(last.merge) && this._undo.length !== this._savedIndex && last.merge(command)) {
                 this._redo.length = 0;
@@ -1798,9 +1830,14 @@
         }
         /** Groups several commands into a single entry. */
         beginBatch() {
-            if (!this._batch) this._batch = [];
+            if (!this._batch) {
+                this._batch = [];
+                this._batchDepth = 0;
+            }
+            this._batchDepth++;
         }
         endBatch(label = "batch") {
+            if (!this._batch || --this._batchDepth > 0) return;
             const list = this._batch;
             this._batch = null;
             if (!list || list.length === 0) return;
@@ -2542,7 +2579,7 @@
             const entry = {
                 fn,
                 context: options.context || null,
-                scene: options.persistent ? null : currentScene(),
+                scene: options.persistent ? null : (options.scene || currentScene()),
                 persistent: !!options.persistent,
                 onCancel: options.onCancel || null,
                 active: true
@@ -2642,6 +2679,7 @@
             if (this._from) this._apply(this._from); // immediate render of start values
             this._ticker = Ticker.add(() => this._step(), {
                 persistent: options.persistent,
+                scene: options.scene,
                 onCancel: () => this._end(false)
             });
             activeTweens.add(this);
@@ -3435,7 +3473,7 @@
             const width = maxWidth || win.innerWidth;
             const measure = s => (s === "" ? 0 : win.textSizeEx(s).width);
             const lines = [];
-            for (const paragraph of String(text).split("\n")) {
+            for (const paragraph of String(text).split(/\r?\n/)) {
                 let line = "";
                 for (const token of paragraph.split(/(\s+)/)) {
                     if (token === "") continue;
@@ -3447,7 +3485,7 @@
                     if (line.trim() !== "") lines.push(line.trimEnd());
                     line = /^\s+$/.test(token) ? "" : token;
                     // Break a single overlong word by characters.
-                    while (line !== "" && measure(line) > width) {
+                    while (line.length > 1 && measure(line) > width) {
                         let cut = line.length - 1;
                         while (cut > 1 && measure(line.slice(0, cut)) > width) cut--;
                         lines.push(line.slice(0, cut));
@@ -3659,18 +3697,23 @@
 
     if (window.document && document.addEventListener) {
         document.addEventListener("keydown", e => {
+            inputState.mods = { ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, meta: e.metaKey };
             if (!e.repeat) inputState.pendingTriggered.add(e.code);
             inputState.down.add(e.code);
             setInputDevice("keyboard");
         });
         document.addEventListener("keyup", e => {
+            inputState.mods = { ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, meta: e.metaKey };
             inputState.down.delete(e.code);
             inputState.pendingReleased.add(e.code);
         });
         document.addEventListener("pointerdown", e => {
             setInputDevice(e.pointerType === "touch" ? "touch" : "mouse");
         });
-        if (window.addEventListener) window.addEventListener("blur", () => inputState.down.clear());
+        if (window.addEventListener) window.addEventListener("blur", () => {
+            inputState.down.clear();
+            inputState.mods = null;
+        });
     }
 
     const draggables = [];
@@ -3748,6 +3791,7 @@
             return inputState.released.has(code);
         },
         modifiers() {
+            if (inputState.mods) return { ...inputState.mods };
             const d = inputState.down;
             return {
                 ctrl: d.has("ControlLeft") || d.has("ControlRight"),
@@ -3840,7 +3884,7 @@
                 enabled: true,
                 priority: options.priority || 0,
                 order: ++dragOrder,
-                scene: options.persistent ? null : currentScene(),
+                scene: options.persistent ? null : (options.scene || currentScene()),
                 alive: true
             };
             draggables.push(entry);
@@ -4520,8 +4564,973 @@
     }
 
     //=========================================================================
+    // MF.Registry — named extension registries
+    //=========================================================================
+    //  const actions = MF.Registry.define("MF_SimpleVisual.actions", {
+    //      validate: (value, id) => typeof value === "function"
+    //  });
+    //  actions.add("openMenu", fn, "MyPlugin");   // -> remove()
+    //  actions.get("openMenu"); actions.list(); actions.on("add", (id, value) => ...)
+    //=========================================================================
+
+    class RegistryStore extends EventEmitter {
+        constructor(name, options = {}) {
+            super();
+            this.name = name;
+            this._validate = Utils.isFunction(options.validate) ? options.validate : null;
+            this._override = options.override === true;
+            this._items = new Map();
+        }
+        add(id, value, owner = "unknown") {
+            if (!Utils.isString(id) || !id) {
+                Log.error(PLUGIN_NAME, `Registry "${this.name}": id must be a non-empty string (${owner}).`);
+                return () => {};
+            }
+            if (this._validate && this._validate(value, id) === false) {
+                Log.error(PLUGIN_NAME, `Registry "${this.name}": invalid value for "${id}" (${owner}).`);
+                return () => {};
+            }
+            const prev = this._items.get(id);
+            if (prev && !this._override) {
+                Log.warn(PLUGIN_NAME, `Registry "${this.name}": "${id}" from ${prev.owner} is replaced by ${owner}.`);
+            }
+            const entry = { id, value, owner };
+            this._items.set(id, entry);
+            this.emit("add", id, value, owner);
+            return () => {
+                if (this._items.get(id) === entry) this.remove(id);
+            };
+        }
+        remove(id) {
+            const entry = this._items.get(id);
+            if (!entry) return false;
+            this._items.delete(id);
+            this.emit("remove", id, entry.value);
+            return true;
+        }
+        has(id) {
+            return this._items.has(id);
+        }
+        get(id, fallback) {
+            const entry = this._items.get(id);
+            return entry ? entry.value : fallback;
+        }
+        owner(id) {
+            const entry = this._items.get(id);
+            return entry ? entry.owner : null;
+        }
+        ids() {
+            return Array.from(this._items.keys());
+        }
+        list() {
+            return Array.from(this._items.values()).map(e => ({ id: e.id, value: e.value, owner: e.owner }));
+        }
+        get size() {
+            return this._items.size;
+        }
+    }
+
+    const registries = new Map();
+
+    const Registry = {
+        Store: RegistryStore,
+        /** Returns the registry with this name, creating it on first call. */
+        define(name, options = {}) {
+            if (!registries.has(name)) registries.set(name, new RegistryStore(name, options));
+            return registries.get(name);
+        },
+        get(name) {
+            return registries.get(name) || null;
+        },
+        has(name) {
+            return registries.has(name);
+        },
+        names() {
+            return Array.from(registries.keys());
+        }
+    };
+
+    //=========================================================================
+    // MF.Services — loose coupling between plugins
+    //=========================================================================
+    //  MF.Services.provide("quest", api, { version: "1.0.0", owner: "MF_QuestLog" });
+    //  const quest = MF.Services.use("quest", "1.0.0");      // null if missing / too old
+    //  MF.Services.when("quest").then(api => ...);            // any load order
+    //=========================================================================
+
+    const services = new Map();
+    const serviceWaiters = new Map();
+
+    const Services = {
+        provide(name, api, options = {}) {
+            if (services.has(name)) {
+                Log.warn(PLUGIN_NAME, `Service "${name}" from ${services.get(name).owner} is replaced by ${options.owner || "unknown"}.`);
+            }
+            services.set(name, { name, api, version: options.version || "0.0.0", owner: options.owner || "unknown" });
+            const waiters = serviceWaiters.get(name);
+            if (waiters) {
+                serviceWaiters.delete(name);
+                for (const w of waiters) {
+                    if (!w.minVersion || Utils.compareVersions(services.get(name).version, w.minVersion) >= 0) w.resolve(api);
+                    else w.reject(new Error(`Service "${name}" v${w.minVersion}+ is required (provided: v${services.get(name).version}).`));
+                }
+            }
+            Events.bus.emit("mf:serviceProvided", name, api);
+            return api;
+        },
+        has(name, minVersion) {
+            const s = services.get(name);
+            return !!s && (!minVersion || Utils.compareVersions(s.version, minVersion) >= 0);
+        },
+        /** API of the service, or null (with a debug message) if it is missing or older than minVersion. */
+        use(name, minVersion) {
+            if (!this.has(name, minVersion)) {
+                Log.debug(PLUGIN_NAME, `Service "${name}"${minVersion ? ` v${minVersion}+` : ""} is not available.`);
+                return null;
+            }
+            return services.get(name).api;
+        },
+        /** Like use(), but throws a readable error. */
+        require(requester, name, minVersion) {
+            const api = this.use(name, minVersion);
+            if (!api) {
+                const s = services.get(name);
+                throw new Error(s
+                    ? `${requester}: service "${name}" v${minVersion}+ is required (provided: v${s.version} by ${s.owner}).`
+                    : `${requester}: service "${name}" is required. Enable the plugin that provides it.`);
+            }
+            return api;
+        },
+        /** Promise resolved when the service is provided (immediately if it already is). */
+        when(name, minVersion) {
+            if (services.has(name)) {
+                return this.has(name, minVersion)
+                    ? Promise.resolve(services.get(name).api)
+                    : Promise.reject(new Error(`Service "${name}" v${minVersion}+ is required (provided: v${services.get(name).version}).`));
+            }
+            return new Promise((resolve, reject) => {
+                if (!serviceWaiters.has(name)) serviceWaiters.set(name, []);
+                serviceWaiters.get(name).push({ resolve, reject, minVersion });
+            });
+        },
+        list() {
+            return Array.from(services.values()).map(s => ({ name: s.name, version: s.version, owner: s.owner }));
+        }
+    };
+
+    //=========================================================================
+    // MF.Notetag — notetags of database objects and events
+    //=========================================================================
+    //  <Tag>            -> true
+    //  <Tag: value>     -> "value" (typed by options/schema)
+    //  <Tag>            multi-line block
+    //  ...
+    //  </Tag>           -> "..." (text between the tags)
+    //  Tag names are case-insensitive. A tag may repeat: getAll() returns every value.
+    //
+    //  MF.Notetag.get($dataItems[1], "Price", { type: "number", default: 0 });
+    //  MF.Notetag.getAll(actor, "Element", { type: "list" });       // ["fire", "ice"]
+    //  MF.Notetag.collect(battler, "CritBonus", { type: "number" }); // actor+class+equips+states / enemy+states
+    //=========================================================================
+
+    const notetagCache = new Map(); // note text -> Map(lowerTag -> [raw values])
+    const NOTETAG_CACHE_LIMIT = 2000;
+
+    function notetagNote(obj) {
+        if (Utils.isString(obj)) return obj;
+        if (!obj) return "";
+        if (Utils.isString(obj.note)) return obj.note;
+        // Game objects -> their database record.
+        if (Utils.isFunction(obj.isActor) && obj.isActor() && Utils.isFunction(obj.actor)) return notetagNote(obj.actor());
+        if (Utils.isFunction(obj.isEnemy) && obj.isEnemy() && Utils.isFunction(obj.enemy)) return notetagNote(obj.enemy());
+        // Game_Event: the note of the event (comments are not included).
+        if (obj.event && Utils.isFunction(obj.event)) {
+            const data = obj.event();
+            return data && Utils.isString(data.note) ? data.note : "";
+        }
+        return "";
+    }
+
+    function notetagParse(note) {
+        const cached = notetagCache.get(note);
+        if (cached) return cached;
+        const tags = new Map();
+        const push = (name, value) => {
+            const key = name.toLowerCase();
+            if (!tags.has(key)) tags.set(key, []);
+            tags.get(key).push(value);
+        };
+        const text = note.replace(/\r\n?/g, "\n");
+        // Blocks first; their contents are removed so inner <...> lines do not become tags.
+        const rest = text.replace(/<([^<>:\/\s][^<>:\/]*?)>\n?([\s\S]*?)\n?<\/\1>/gi, (m, name, body) => {
+            push(name.trim(), body);
+            return "";
+        });
+        const re = /<([^<>:\/\s][^<>:]*?)(?:\s*:\s*([^<>]*?))?\s*>/g;
+        let m;
+        while ((m = re.exec(rest))) push(m[1].trim(), m[2] === undefined ? true : m[2]);
+        if (notetagCache.size >= NOTETAG_CACHE_LIMIT) notetagCache.clear();
+        notetagCache.set(note, tags);
+        return tags;
+    }
+
+    function notetagConvert(raw, options) {
+        const type = options.type || "auto";
+        if (raw === true) {
+            if (type === "boolean" || type === "auto" || type === "flag") return true;
+            if (type === "list") return [];
+            return options.default !== undefined ? options.default : true;
+        }
+        const s = String(raw).trim();
+        switch (type) {
+            case "string":
+                return s;
+            case "text":
+                return String(raw);
+            case "number": {
+                const n = Number(s);
+                return Number.isFinite(n) ? n : options.default;
+            }
+            case "int": {
+                const n = parseInt(s, 10);
+                return Number.isFinite(n) ? n : options.default;
+            }
+            case "boolean":
+            case "flag":
+                return !/^(false|off|no|0)$/i.test(s);
+            case "list":
+                return s === "" ? [] : s.split(options.separator || ",").map(v => v.trim()).filter(v => v !== "");
+            case "numbers":
+                return s === "" ? [] : s.split(options.separator || ",").map(v => Number(v.trim())).filter(Number.isFinite);
+            case "json":
+                return Utils.parseJson(s, options.default);
+            case "auto":
+            default:
+                if (s !== "" && Number.isFinite(Number(s))) return Number(s);
+                if (/^(true|false)$/i.test(s)) return s.toLowerCase() === "true";
+                return s;
+        }
+    }
+
+    function notetagFinish(value, options) {
+        if (value === undefined) return options.default;
+        if (options.schema) {
+            const r = Schema.normalize(value, options.schema);
+            if (!r.ok) {
+                Log.warn(PLUGIN_NAME, `Notetag value is invalid:\n${Schema.format(r.errors)}`);
+                return options.default;
+            }
+            return r.value;
+        }
+        return value;
+    }
+
+    const Notetag = {
+        /** All tags of an object: { lowerTag: [raw values] } (raw: true or string). */
+        parse(objOrNote) {
+            const tags = notetagParse(notetagNote(objOrNote));
+            const out = {};
+            for (const [k, v] of tags) out[k] = v.slice();
+            return out;
+        },
+        has(obj, tag) {
+            return notetagParse(notetagNote(obj)).has(String(tag).toLowerCase());
+        },
+        /**
+         * First value of a tag.
+         * options: { type: auto|string|text|number|int|boolean|list|numbers|json,
+         *            default, separator, schema }
+         */
+        get(obj, tag, options = {}) {
+            const list = notetagParse(notetagNote(obj)).get(String(tag).toLowerCase());
+            if (!list) return options.default;
+            return notetagFinish(notetagConvert(list[0], options), options);
+        },
+        /** Every value of a repeated tag. */
+        getAll(obj, tag, options = {}) {
+            const list = notetagParse(notetagNote(obj)).get(String(tag).toLowerCase());
+            if (!list) return [];
+            return list.map(raw => notetagFinish(notetagConvert(raw, options), options)).filter(v => v !== undefined);
+        },
+        /** Database objects that affect a battler: actor, class, equips, states / enemy, states. */
+        sources(battler) {
+            if (!battler) return [];
+            const out = [];
+            if (Utils.isFunction(battler.isActor) && battler.isActor()) {
+                out.push(battler.actor(), battler.currentClass());
+                for (const e of battler.equips()) if (e) out.push(e);
+            } else if (Utils.isFunction(battler.isEnemy) && battler.isEnemy()) {
+                out.push(battler.enemy());
+            }
+            if (Utils.isFunction(battler.states)) out.push(...battler.states());
+            return out.filter(Boolean);
+        },
+        /** Values of a tag from all sources of a battler (see sources). */
+        collect(battler, tag, options = {}) {
+            const out = [];
+            for (const src of this.sources(battler)) out.push(...this.getAll(src, tag, options));
+            return out;
+        },
+        /** Sum of numeric values of a tag from all sources of a battler. */
+        sum(battler, tag, base = 0) {
+            return this.collect(battler, tag, { type: "number" }).reduce((a, b) => a + (Utils.isNumber(b) ? b : 0), base);
+        },
+        clearCache() {
+            notetagCache.clear();
+        }
+    };
+
+    //=========================================================================
+    // MF.GameEvents — standard game events on MF.Events.bus
+    //=========================================================================
+    //  Every event is emitted on MF.Events.bus with the "game:" prefix:
+    //    game:newGame, game:saveLoaded
+    //    game:switchChanged (id, value, old)      game:variableChanged (id, value, old)
+    //    game:goldChanged (value, old)            game:itemChanged (item, count, old)
+    //    game:actorLevelChanged (actor, level, old)
+    //    game:stateAdded (battler, stateId)       game:stateRemoved (battler, stateId)
+    //    game:battleStart ()                      game:battleEnd (result: 0 win, 1 escape, 2 lose)
+    //    game:turnStart ()                        game:turnEnd ()
+    //    game:actionEnd (subject, action)
+    //    game:mapLoaded (mapId)                   game:transfer (mapId, x, y)
+    //    game:eventStarted (event)                game:messageAdded (text line)
+    //
+    //  const off = MF.GameEvents.on("variableChanged", (id, value, old) => ...);
+    //  MF.GameEvents.onScene(this, "goldChanged", fn);   // removed when the scene terminates
+    //=========================================================================
+
+    const sceneSubscriptions = new WeakMap();
+
+    const GameEvents = {
+        PREFIX: "game:",
+        on(name, fn, context) {
+            return Events.bus.on(this.PREFIX + name, fn, context);
+        },
+        once(name, fn, context) {
+            return Events.bus.once(this.PREFIX + name, fn, context);
+        },
+        emit(name, ...args) {
+            return Events.bus.emit(this.PREFIX + name, ...args);
+        },
+        /** Subscription that is removed automatically when the scene terminates. */
+        onScene(scene, name, fn, context) {
+            const off = this.on(name, fn, context === undefined ? scene : context);
+            if (!scene) return off;
+            if (!sceneSubscriptions.has(scene)) sceneSubscriptions.set(scene, []);
+            sceneSubscriptions.get(scene).push(off);
+            return off;
+        },
+        _active(name) {
+            return Events.bus.listenerCount(this.PREFIX + name) > 0;
+        }
+    };
+
+    if (window.Scene_Base) {
+        Hook.after(Scene_Base.prototype, "terminate", function() {
+            const list = sceneSubscriptions.get(this);
+            if (!list) return;
+            sceneSubscriptions.delete(this);
+            for (const off of list) off();
+        }, PLUGIN_NAME);
+    }
+
+    if (window.DataManager) {
+        Hook.after(DataManager, "setupNewGame", function() {
+            GameEvents.emit("newGame");
+        }, PLUGIN_NAME);
+        Events.bus.on("mf:saveLoaded", () => GameEvents.emit("saveLoaded"));
+    }
+
+    if (window.Game_Switches) {
+        Hook.alias(Game_Switches.prototype, "setValue", function(orig, id, value) {
+            if (!GameEvents._active("switchChanged")) return orig();
+            const old = this.value(id);
+            orig();
+            const now = this.value(id);
+            if (now !== old) GameEvents.emit("switchChanged", id, now, old);
+        }, PLUGIN_NAME);
+    }
+
+    if (window.Game_Variables) {
+        Hook.alias(Game_Variables.prototype, "setValue", function(orig, id, value) {
+            if (!GameEvents._active("variableChanged")) return orig();
+            const old = this.value(id);
+            orig();
+            const now = this.value(id);
+            if (!Utils.equals(now, old)) GameEvents.emit("variableChanged", id, now, old);
+        }, PLUGIN_NAME);
+    }
+
+    if (window.Game_Party) {
+        Hook.alias(Game_Party.prototype, "gainGold", function(orig) {
+            if (!GameEvents._active("goldChanged")) return orig();
+            const old = this.gold();
+            orig();
+            if (this.gold() !== old) GameEvents.emit("goldChanged", this.gold(), old);
+        }, PLUGIN_NAME);
+        Hook.alias(Game_Party.prototype, "gainItem", function(orig, item) {
+            if (!item || !GameEvents._active("itemChanged")) return orig();
+            const old = this.numItems(item);
+            orig();
+            const now = this.numItems(item);
+            if (now !== old) GameEvents.emit("itemChanged", item, now, old);
+        }, PLUGIN_NAME);
+    }
+
+    if (window.Game_Actor) {
+        Hook.alias(Game_Actor.prototype, "changeExp", function(orig) {
+            if (!GameEvents._active("actorLevelChanged")) return orig();
+            const old = this.level;
+            orig();
+            if (this.level !== old) GameEvents.emit("actorLevelChanged", this, this.level, old);
+        }, PLUGIN_NAME);
+    }
+
+    if (window.Game_Battler) {
+        Hook.alias(Game_Battler.prototype, "addState", function(orig, stateId) {
+            if (!GameEvents._active("stateAdded")) return orig();
+            const had = this.isStateAffected(stateId);
+            orig();
+            if (!had && this.isStateAffected(stateId)) GameEvents.emit("stateAdded", this, stateId);
+        }, PLUGIN_NAME);
+        Hook.alias(Game_Battler.prototype, "removeState", function(orig, stateId) {
+            if (!GameEvents._active("stateRemoved")) return orig();
+            const had = this.isStateAffected(stateId);
+            orig();
+            if (had && !this.isStateAffected(stateId)) GameEvents.emit("stateRemoved", this, stateId);
+        }, PLUGIN_NAME);
+    }
+
+    if (window.BattleManager) {
+        Hook.after(BattleManager, "startBattle", () => GameEvents.emit("battleStart"), PLUGIN_NAME);
+        Hook.after(BattleManager, "endBattle", (r, result) => GameEvents.emit("battleEnd", result), PLUGIN_NAME);
+        Hook.after(BattleManager, "startTurn", () => GameEvents.emit("turnStart"), PLUGIN_NAME);
+        Hook.after(BattleManager, "endTurn", () => GameEvents.emit("turnEnd"), PLUGIN_NAME);
+        Hook.alias(BattleManager, "endAction", function(orig) {
+            const subject = this._subject;
+            const action = this._action;
+            orig();
+            GameEvents.emit("actionEnd", subject, action);
+        }, PLUGIN_NAME);
+    }
+
+    if (window.Game_Map) {
+        Hook.after(Game_Map.prototype, "setup", function(r, mapId) {
+            GameEvents.emit("mapLoaded", mapId);
+        }, PLUGIN_NAME);
+    }
+
+    if (window.Game_Player) {
+        Hook.alias(Game_Player.prototype, "performTransfer", function(orig) {
+            const transferring = this.isTransferring();
+            const mapId = this._newMapId, x = this._newX, y = this._newY;
+            orig();
+            if (transferring) GameEvents.emit("transfer", mapId, x, y);
+        }, PLUGIN_NAME);
+    }
+
+    if (window.Game_Event) {
+        Hook.after(Game_Event.prototype, "start", function() {
+            if (this._starting) GameEvents.emit("eventStarted", this);
+        }, PLUGIN_NAME);
+    }
+
+    if (window.Game_Message) {
+        Hook.after(Game_Message.prototype, "add", function(r, text) {
+            GameEvents.emit("messageAdded", text);
+        }, PLUGIN_NAME);
+    }
+
+    //=========================================================================
+    // MF.Commands — plugin commands with typed arguments and async support
+    //=========================================================================
+    //  MF.Commands.register("MF_QuestLog", "StartQuest", async function(args) {
+    //      // this — Game_Interpreter (or null when called from JS)
+    //      await MF.Timer.wait(30);       // the event waits until the promise settles
+    //  }, { id: { type: "string", required: true }, stage: { type: "number", default: 0 } });
+    //
+    //  MF.Commands.call("MF_QuestLog", "StartQuest", { id: "q1" });   // from JS -> Promise
+    //=========================================================================
+
+    const commandWaits = new WeakMap(); // Game_Interpreter -> { done }
+    const commandTable = new Map();
+
+    const Commands = {
+        /**
+         * schema — MF.Schema properties of the arguments object (optional).
+         * The handler may return a Promise; the event interpreter waits for it.
+         */
+        register(pluginName, commandName, handler, schema) {
+            const key = `${pluginName}:${commandName}`;
+            if (commandTable.has(key)) Log.warn(PLUGIN_NAME, `Command ${key} is registered again.`);
+            commandTable.set(key, { handler, schema: schema || null });
+            PluginManager.registerCommand(pluginName, commandName, function(rawArgs) {
+                const promise = Commands._run(pluginName, commandName, rawArgs, this);
+                if (this instanceof Game_Interpreter && promise) {
+                    const wait = { done: false };
+                    commandWaits.set(this, wait);
+                    promise.finally(() => {
+                        wait.done = true;
+                    });
+                }
+            });
+        },
+        has(pluginName, commandName) {
+            return commandTable.has(`${pluginName}:${commandName}`);
+        },
+        /** Calls a registered command from code. Always returns a Promise. */
+        call(pluginName, commandName, args = {}, interpreter = null) {
+            return this._run(pluginName, commandName, args, interpreter, true) || Promise.resolve();
+        },
+        _args(entry, key, rawArgs) {
+            let args = Utils.parseParams(rawArgs || {});
+            if (!Utils.isObject(args)) args = {};
+            if (entry.schema) {
+                const r = Schema.normalize(args, { type: "object", properties: entry.schema });
+                if (!r.ok) Log.warn(PLUGIN_NAME, `Command ${key}: invalid arguments\n${Schema.format(r.errors)}`);
+                args = r.value;
+            }
+            return args;
+        },
+        /** Returns a Promise when the handler is async (or always, if force). */
+        _run(pluginName, commandName, rawArgs, interpreter, force = false) {
+            const key = `${pluginName}:${commandName}`;
+            const entry = commandTable.get(key);
+            if (!entry) {
+                Log.warn(PLUGIN_NAME, `Command ${key} is not registered.`);
+                return force ? Promise.resolve() : null;
+            }
+            let result;
+            try {
+                result = entry.handler.call(interpreter, this._args(entry, key, rawArgs));
+            } catch (e) {
+                Log.error(PLUGIN_NAME, `Command ${key} failed:`, e);
+                if (force) return Promise.reject(e);
+                throw e;
+            }
+            if (result && Utils.isFunction(result.then)) {
+                return Promise.resolve(result).catch(e => {
+                    Log.error(PLUGIN_NAME, `Command ${key} failed:`, e);
+                });
+            }
+            return force ? Promise.resolve(result) : null;
+        }
+    };
+
+    if (window.Game_Interpreter) {
+        Hook.alias(Game_Interpreter.prototype, "updateWait", function(orig) {
+            const wait = commandWaits.get(this);
+            if (wait) {
+                if (!wait.done) return true;
+                commandWaits.delete(this);
+            }
+            return orig();
+        }, PLUGIN_NAME);
+        // A loaded or reset interpreter must not keep waiting for a promise of another session.
+        Hook.after(Game_Interpreter.prototype, "clear", function() {
+            commandWaits.delete(this);
+        }, PLUGIN_NAME);
+    }
+
+    //=========================================================================
+    // MF.Options — shared entries in Scene_Options (values in MF.Config)
+    //=========================================================================
+    //  MF.Options.add({
+    //      key: "MF_QuestLog.tracker",        // MF.Config key (registered automatically)
+    //      label: "Quest tracker",             // string, I18n key "ns:key" or function
+    //      type: "boolean",                    // boolean | number | volume | list
+    //      default: true,
+    //      // number/volume: min, max, step, wrap, format(value)
+    //      // list: values: [{ value: "a", label: "A" }, ...]
+    //      // visible: () => true, after: "commandRemember" (MZ symbol to insert after)
+    //  });
+    //=========================================================================
+
+    const optionEntries = new Map();
+    const OPTION_PREFIX = "mf:";
+
+    function optionLabel(value) {
+        if (Utils.isFunction(value)) return String(value());
+        if (Utils.isString(value) && value.includes(":") && I18n.has(value)) return I18n.t(value);
+        return value === undefined || value === null ? "" : String(value);
+    }
+
+    function optionEntry(symbol) {
+        return Utils.isString(symbol) && symbol.startsWith(OPTION_PREFIX) ? optionEntries.get(symbol.slice(OPTION_PREFIX.length)) : null;
+    }
+
+    const Options = {
+        add(def) {
+            if (!Utils.isObject(def) || !Utils.isString(def.key) || !def.key) {
+                Log.error(PLUGIN_NAME, "Options.add: key is required.");
+                return;
+            }
+            const type = def.type || "boolean";
+            const entry = {
+                key: def.key,
+                label: def.label !== undefined ? def.label : def.key,
+                type: ["boolean", "number", "volume", "list"].includes(type) ? type : "boolean",
+                min: Utils.isNumber(def.min) ? def.min : 0,
+                max: Utils.isNumber(def.max) ? def.max : type === "volume" ? 100 : 10,
+                step: Utils.isNumber(def.step) && def.step > 0 ? def.step : type === "volume" ? 20 : 1,
+                wrap: def.wrap !== undefined ? !!def.wrap : type !== "number",
+                values: Array.isArray(def.values) ? def.values.map(v => (Utils.isObject(v) ? v : { value: v, label: String(v) })) : [],
+                format: Utils.isFunction(def.format) ? def.format : null,
+                visible: Utils.isFunction(def.visible) ? def.visible : null,
+                after: def.after || null,
+                owner: def.owner || "unknown"
+            };
+            let defaultValue = def.default;
+            if (defaultValue === undefined) {
+                defaultValue = entry.type === "boolean" ? false : entry.type === "list" ? (entry.values[0] || {}).value : entry.min;
+            }
+            if (!Config.isRegistered(entry.key)) Config.register(entry.key, defaultValue);
+            optionEntries.set(entry.key, entry);
+        },
+        remove(key) {
+            return optionEntries.delete(key);
+        },
+        list() {
+            return Array.from(optionEntries.values()).map(e => ({ key: e.key, type: e.type, owner: e.owner }));
+        },
+        symbol(key) {
+            return OPTION_PREFIX + key;
+        },
+        _visible() {
+            return Array.from(optionEntries.values()).filter(e => {
+                try {
+                    return !e.visible || e.visible();
+                } catch (err) {
+                    Log.error(PLUGIN_NAME, `Option "${e.key}" visible() failed:`, err);
+                    return false;
+                }
+            });
+        },
+        _status(entry) {
+            const value = Config.get(entry.key);
+            if (entry.format) return String(entry.format(value));
+            switch (entry.type) {
+                case "boolean":
+                    return value ? TextManager.on || "ON" : TextManager.off || "OFF";
+                case "volume":
+                    return `${value}%`;
+                case "list": {
+                    const item = entry.values.find(v => Utils.equals(v.value, value));
+                    return item ? optionLabel(item.label !== undefined ? item.label : item.value) : String(value);
+                }
+                default:
+                    return String(value);
+            }
+        },
+        _change(entry, dir, wrapForced) {
+            const value = Config.get(entry.key);
+            let next = value;
+            if (entry.type === "boolean") {
+                next = dir === 0 ? !value : dir > 0;
+            } else if (entry.type === "list") {
+                const n = entry.values.length;
+                if (n === 0) return false;
+                let i = entry.values.findIndex(v => Utils.equals(v.value, value));
+                if (i < 0) i = 0;
+                else i += dir === 0 ? 1 : dir;
+                if (i >= n) i = entry.wrap || wrapForced ? 0 : n - 1;
+                if (i < 0) i = entry.wrap || wrapForced ? n - 1 : 0;
+                next = entry.values[i].value;
+            } else {
+                const cur = Utils.isNumber(value) ? value : entry.min;
+                let v = cur + (dir === 0 ? 1 : dir) * entry.step;
+                if (v > entry.max) v = entry.wrap || wrapForced ? entry.min : entry.max;
+                if (v < entry.min) v = entry.wrap || wrapForced ? entry.max : entry.min;
+                next = Math.round(v * 1e6) / 1e6;
+            }
+            if (Utils.equals(next, value)) return false;
+            Config.set(entry.key, next);
+            return true;
+        }
+    };
+
+    if (window.Window_Options) {
+        Hook.after(Window_Options.prototype, "makeCommandList", function() {
+            for (const entry of Options._visible()) {
+                const symbol = OPTION_PREFIX + entry.key;
+                this.addCommand(optionLabel(entry.label), symbol);
+                if (entry.after) {
+                    const at = this._list.findIndex(c => c.symbol === entry.after);
+                    if (at >= 0) this._list.splice(at + 1, 0, this._list.pop());
+                }
+            }
+        }, PLUGIN_NAME);
+        Hook.alias(Window_Options.prototype, "statusText", function(orig, index) {
+            const entry = optionEntry(this.commandSymbol(index));
+            return entry ? Options._status(entry) : orig();
+        }, PLUGIN_NAME);
+        const optionInput = (method, dir, wrap) => {
+            Hook.alias(Window_Options.prototype, method, function(orig) {
+                const entry = optionEntry(this.currentSymbol());
+                if (!entry) return orig();
+                if (Options._change(entry, dir, wrap)) {
+                    this.redrawItem(this.findSymbol(this.currentSymbol()));
+                    this.playCursorSound();
+                }
+                return undefined;
+            }, PLUGIN_NAME);
+        };
+        optionInput("processOk", 0, true);
+        optionInput("cursorRight", 1, false);
+        optionInput("cursorLeft", -1, false);
+    }
+
+    if (window.Scene_Options) {
+        Hook.after(Scene_Options.prototype, "maxCommands", function(result) {
+            return result + Options._visible().length;
+        }, PLUGIN_NAME);
+    }
+
+    //=========================================================================
+    // MF.Modifiers — stacking stat modifiers without overlapping hooks
+    //=========================================================================
+    //  const off = MF.Modifiers.add("param", (value, ctx) =>
+    //      ctx.paramId === 2 && ctx.battler.isStateAffected(10) ? value * 1.2 : value,
+    //      { owner: "MF_Rage", priority: 100 });   // lower priority runs first
+    //
+    //  Built-in stats (ctx):
+    //    param       { battler, paramId }       result is rounded and clamped by MZ limits
+    //    xparam      { battler, xparamId }      sparam { battler, sparamId }
+    //    skillMpCost { battler, skill }         skillTpCost { battler, skill }
+    //    expGain     { actor, value }           goldGain { value }  (battle rewards)
+    //  Custom stats: MF.Modifiers.apply("myStat", base, ctx).
+    //=========================================================================
+
+    const modifierTable = new Map(); // stat -> [{ fn, priority, owner, order }]
+    let modifierOrder = 0;
+
+    const Modifiers = {
+        add(stat, fn, options = {}) {
+            if (!Utils.isFunction(fn)) {
+                Log.error(PLUGIN_NAME, `Modifiers.add("${stat}"): fn must be a function.`);
+                return () => {};
+            }
+            if (!modifierTable.has(stat)) modifierTable.set(stat, []);
+            const list = modifierTable.get(stat);
+            const entry = { fn, priority: Utils.isNumber(options.priority) ? options.priority : 0, owner: options.owner || "unknown", order: modifierOrder++ };
+            list.push(entry);
+            list.sort((a, b) => a.priority - b.priority || a.order - b.order);
+            return () => {
+                const i = list.indexOf(entry);
+                if (i >= 0) list.splice(i, 1);
+            };
+        },
+        has(stat) {
+            const list = modifierTable.get(stat);
+            return !!list && list.length > 0;
+        },
+        apply(stat, value, ctx = {}) {
+            const list = modifierTable.get(stat);
+            if (!list || list.length === 0) return value;
+            let v = value;
+            for (const entry of list.slice()) {
+                try {
+                    const r = entry.fn(v, ctx);
+                    if (Utils.isNumber(r) || (r !== undefined && !Utils.isNumber(v))) v = r;
+                } catch (e) {
+                    Log.error(PLUGIN_NAME, `Modifier "${stat}" from ${entry.owner} failed:`, e);
+                }
+            }
+            return v;
+        },
+        list(stat) {
+            const pick = s => (modifierTable.get(s) || []).map(e => ({ stat: s, owner: e.owner, priority: e.priority }));
+            return stat ? pick(stat) : Array.from(modifierTable.keys()).flatMap(pick);
+        }
+    };
+
+    if (window.Game_BattlerBase) {
+        Hook.alias(Game_BattlerBase.prototype, "param", function(orig, paramId) {
+            const value = orig();
+            if (!Modifiers.has("param")) return value;
+            const v = Modifiers.apply("param", value, { battler: this, paramId });
+            return Math.round(MathX.clamp(v, this.paramMin(paramId), this.paramMax(paramId)));
+        }, PLUGIN_NAME);
+        Hook.alias(Game_BattlerBase.prototype, "xparam", function(orig, xparamId) {
+            const value = orig();
+            return Modifiers.has("xparam") ? Modifiers.apply("xparam", value, { battler: this, xparamId }) : value;
+        }, PLUGIN_NAME);
+        Hook.alias(Game_BattlerBase.prototype, "sparam", function(orig, sparamId) {
+            const value = orig();
+            return Modifiers.has("sparam") ? Modifiers.apply("sparam", value, { battler: this, sparamId }) : value;
+        }, PLUGIN_NAME);
+        Hook.alias(Game_BattlerBase.prototype, "skillMpCost", function(orig, skill) {
+            const value = orig();
+            return Modifiers.has("skillMpCost") ? Math.max(0, Math.floor(Modifiers.apply("skillMpCost", value, { battler: this, skill }))) : value;
+        }, PLUGIN_NAME);
+        Hook.alias(Game_BattlerBase.prototype, "skillTpCost", function(orig, skill) {
+            const value = orig();
+            return Modifiers.has("skillTpCost") ? Math.max(0, Math.floor(Modifiers.apply("skillTpCost", value, { battler: this, skill }))) : value;
+        }, PLUGIN_NAME);
+    }
+
+    if (window.BattleManager) {
+        Hook.after(BattleManager, "makeRewards", function() {
+            const r = this._rewards;
+            if (!r) return;
+            if (Modifiers.has("goldGain")) r.gold = Math.max(0, Math.round(Modifiers.apply("goldGain", r.gold, { value: r.gold })));
+            if (Modifiers.has("expGain")) r.exp = Math.max(0, Math.round(Modifiers.apply("expGain", r.exp, { value: r.exp })));
+        }, PLUGIN_NAME);
+    }
+
+    //=========================================================================
+    // MF.Random — seeded random numbers
+    //=========================================================================
+    //  const rng = MF.Random.create(12345);     // independent generator
+    //  rng.int(1, 6); rng.chance(0.25); rng.pick(list); rng.weighted(list, "weight");
+    //  MF.Random.stream("loot").int(1, 100);   // state is stored in the save file
+    //  MF.Random.int(1, 6);                     // Math.random-based helpers
+    //=========================================================================
+
+    function hashSeed(seed) {
+        if (Utils.isNumber(seed)) return seed >>> 0;
+        const s = String(seed);
+        let h = 2166136261;
+        for (let i = 0; i < s.length; i++) {
+            h ^= s.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+    }
+
+    const RandomMethods = {
+        float(min = 0, max = 1) {
+            return min + this.next() * (max - min);
+        },
+        /** Integer in [min, max] (both inclusive). */
+        int(min, max) {
+            if (max === undefined) {
+                max = min;
+                min = 0;
+            }
+            const lo = Math.ceil(Math.min(min, max));
+            const hi = Math.floor(Math.max(min, max));
+            return lo + Math.floor(this.next() * (hi - lo + 1));
+        },
+        chance(p) {
+            return this.next() < p;
+        },
+        pick(list) {
+            return list && list.length ? list[Math.floor(this.next() * list.length)] : undefined;
+        },
+        /** Shuffles a copy of the array. */
+        shuffle(list) {
+            const a = Array.from(list || []);
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(this.next() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        },
+        /** Weighted pick. weight — property name or function(item) -> number. */
+        weighted(list, weight = "weight") {
+            if (!list || !list.length) return undefined;
+            const w = Utils.isFunction(weight) ? weight : item => (Utils.isObject(item) ? item[weight] : 1);
+            const weights = list.map(item => Math.max(0, Number(w(item)) || 0));
+            const total = weights.reduce((a, b) => a + b, 0);
+            if (total <= 0) return undefined;
+            let r = this.next() * total;
+            for (let i = 0; i < list.length; i++) {
+                r -= weights[i];
+                if (r < 0) return list[i];
+            }
+            return list[list.length - 1];
+        }
+    };
+
+    class RandomGenerator {
+        constructor(seed = Date.now()) {
+            this.seed(seed);
+        }
+        seed(seed) {
+            this._state = hashSeed(seed);
+            return this;
+        }
+        get state() {
+            return this._state;
+        }
+        set state(value) {
+            this._state = value >>> 0;
+        }
+        /** mulberry32: float in [0, 1). */
+        next() {
+            let t = (this._state = (this._state + 0x6d2b79f5) >>> 0);
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        }
+    }
+    Object.assign(RandomGenerator.prototype, RandomMethods);
+
+    const RANDOM_SAVE_KEY = "MF_Core.random";
+
+    /** Generator whose state lives in MF.Save (survives save/load, reset on new game). */
+    class RandomStream extends RandomGenerator {
+        constructor(name, seed) {
+            super(0);
+            this.name = name;
+            this._seed = seed;
+        }
+        _store() {
+            const store = Save.get(RANDOM_SAVE_KEY);
+            if (!Utils.isNumber(store[this.name])) {
+                store[this.name] = hashSeed(this._seed !== undefined ? this._seed : `${this.name}:${Date.now()}:${Math.random()}`);
+            }
+            return store;
+        }
+        get state() {
+            return this._store()[this.name];
+        }
+        set state(value) {
+            this._store()[this.name] = value >>> 0;
+        }
+        seed(seed) {
+            if (this.name !== undefined) this._store()[this.name] = hashSeed(seed);
+            return this;
+        }
+        next() {
+            const store = this._store();
+            this._state = store[this.name];
+            const r = RandomGenerator.prototype.next.call(this);
+            store[this.name] = this._state;
+            return r;
+        }
+    }
+
+    Save.register(RANDOM_SAVE_KEY, { default: () => ({}) });
+    const randomStreams = new Map();
+    const mathRandom = { next: () => Math.random() };
+    Object.assign(mathRandom, RandomMethods);
+
+    const Random = {
+        Generator: RandomGenerator,
+        create(seed) {
+            return new RandomGenerator(seed);
+        },
+        /** Named stream saved with the game. seed is used only when the stream is first created. */
+        stream(name, seed) {
+            if (!randomStreams.has(name)) randomStreams.set(name, new RandomStream(name, seed));
+            return randomStreams.get(name);
+        },
+        next: () => Math.random(),
+        float: (min, max) => mathRandom.float(min, max),
+        int: (min, max) => mathRandom.int(min, max),
+        chance: p => mathRandom.chance(p),
+        pick: list => mathRandom.pick(list),
+        shuffle: list => mathRandom.shuffle(list),
+        weighted: (list, weight) => mathRandom.weighted(list, weight),
+        hash: hashSeed
+    };
+
+    //=========================================================================
     // MF.Core — plugin registration and dependencies
     //=========================================================================
+
 
     const plugins = new Map();
     const majorWarnings = new Set();
@@ -4636,7 +5645,15 @@
         Text,
         Input,
         Assets,
-        Document
+        Document,
+        Registry,
+        Services,
+        Notetag,
+        GameEvents,
+        Commands,
+        Options,
+        Modifiers,
+        Random
     });
 
     Core.register(PLUGIN_NAME, PLUGIN_VERSION);

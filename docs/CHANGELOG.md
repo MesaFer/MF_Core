@@ -63,6 +63,31 @@ _Nothing yet._
 
 ---
 
+## [1.2.0] — 2026-09-25
+
+### Added
+- `MF.Registry` — named extension registries (`define`, `add` → remove function, `get`, `has`, `ids`, `list`, `owner`; events `add` / `remove`; optional `validate`).
+- `MF.Services` — loose coupling between plugins: `provide(name, api, { version, owner })`, `use(name, minVersion)` (null if missing), `require(requester, name, minVersion)` (readable error), `when(name, minVersion)` (Promise, any load order), `list()`.
+- `MF.Notetag` — notetag parser with cache: `<Tag>`, `<Tag: value>`, repeated tags, blocks `<Tag>…</Tag>`; case-insensitive. `get` / `getAll` with types `auto | string | text | number | int | boolean | list | numbers | json`, `default`, `separator`, `schema`; `has`, `parse`; battler helpers `sources`, `collect`, `sum` (actor + class + equips + states / enemy + states). Accepts database objects, notes, `Game_Actor` / `Game_Enemy` / `Game_Event`.
+- `MF.GameEvents` — standard game events on `MF.Events.bus` with the `game:` prefix: `newGame`, `saveLoaded`, `switchChanged`, `variableChanged`, `goldChanged`, `itemChanged`, `actorLevelChanged`, `stateAdded`, `stateRemoved`, `battleStart`, `battleEnd`, `turnStart`, `turnEnd`, `actionEnd`, `mapLoaded`, `transfer`, `eventStarted`, `messageAdded`. `on` / `once` / `emit`, `onScene(scene, …)` — unsubscribed automatically on scene terminate. Value-change hooks do no extra work while nobody listens.
+- `MF.Commands` — plugin commands with argument schema (`MF.Schema` properties, string → number/boolean coercion) and async handlers: a returned Promise makes the event wait. `call(plugin, command, args)` runs a command from JS and returns a Promise.
+- `MF.Options` — shared entries in `Scene_Options` stored in `MF.Config`: types `boolean`, `number`, `volume`, `list`; `label` (string, I18n key or function), `format`, `visible`, `after` (insert after an MZ symbol); the options window grows automatically.
+- `MF.Modifiers` — stacking stat modifiers with priorities instead of competing hooks: built-in `param` (rounded and clamped by MZ limits), `xparam`, `sparam`, `skillMpCost`, `skillTpCost`, `expGain`, `goldGain`; custom stats via `apply(stat, value, ctx)`.
+- `MF.Random` — seeded generators (`create(seed)`, mulberry32; `int`, `float`, `chance`, `pick`, `shuffle`, `weighted`, `state`) and named streams `stream(name, seed)` whose state is stored in the save file;   `Math.random`-based helpers with the same API.
+- Ticker / Tween / Timer: `options.scene` — bind work created in a scene's `initialize` to that scene.
+
+### Fixed
+- `MF.Text.wrap` froze the game when a single character was wider than the line (narrow window, `innerWidth` 0, large `\FS`); CRLF line breaks are now split correctly.
+- `MF.Script`: expressions containing a line break or `;` (e.g. pasted with CRLF, `x === ";"`) returned `undefined`; they are now evaluated as expressions, falling back to a statement block.
+- `MF.Units`: an invalid expression was recompiled and logged every frame; errors are cached and logged once, the cache is bounded.
+- `MF.History.isDirty()` returned false after undo + new edit that restored the saved stack length.
+- `MF.History`: nested `beginBatch` / `Document.transaction` no longer split the outer group.
+- `MF.Utils.parseParams` no longer turns strings with leading zeros (`"007"`, `"01"`) into numbers.
+- `MF.Input.isShortcut` / `modifiers()` use modifier flags from key events (modifiers held before the window got focus were ignored).
+- Loading MF_Core twice no longer installs every hook twice (the second copy is ignored with a warning).
+
+---
+
 ## [1.1.0] — 2026-09-23
 
 ### Added
