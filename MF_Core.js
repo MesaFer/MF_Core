@@ -1,19 +1,6 @@
 //=============================================================================
 // MF_Core.js
 //=============================================================================
-//-----------------------------------------------------------------------------
-// Copyright (c) 2026 MesaFer. All rights reserved.
-// License: MF Plugins License 1.1 (LICENSE.md).
-//   One license per developer, unlimited projects, free updates. As is,
-//   without warranty.
-//   ALLOWED: use in commercial and non-commercial RPG Maker MZ games;
-//            modifying this file for your own projects;
-//            MF_Core and MF_SimpleVisual may be included in game builds.
-//   FORBIDDEN: selling or redistributing this file or parts of it (also for
-//            free, also in packs or templates); copying the code into other
-//            projects; distributing modified versions; removing this header.
-//   MF_SimpleVisualEditor must NOT be distributed, not even in game builds.
-//-----------------------------------------------------------------------------
 /*:
  * @target MZ
  * @plugindesc [v1.2.0] MF Core — base library for MF_* plugins.
@@ -109,14 +96,6 @@
  *
  *   Changelog: docs/MF_Core/CHANGELOG.md
  *   Reference: docs/MF_Core/index.html
- *
- * ----------------------------------------------------------------------------
- * License (full text: LICENSE.md)
- * ----------------------------------------------------------------------------
- *   Allowed: commercial and non-commercial RPG Maker MZ games; including this
- *   file in game builds. Forbidden: selling or redistributing the plugin or
- *   parts of it, copying its code into other projects, distributing modified
- *   versions, removing the license header. Copyright (c) 2026 MesaFer.
  *
  * This plugin has no plugin commands.
  */

@@ -32,7 +32,7 @@ All APIs live in the global `MF` namespace.
 | `MF.Log` | Prefixed logging |
 | `MF.Utils` | Type checks, clone, merge, diff, paths, equality, uid |
 | `MF.Math` | clamp, lerp, remap, snap, rectangles, easing |
-| `MF.Units` | Size expressions: `"240"`, `"50%"`, `"100%-240"`, `"auto"` |
+| `MF.Units` | Size expressions: `"240"`, `"50%"`, `"100%-240"`, `"auto"`; functions (`min`, `clamp`, `lerp`, `angle`, …), comparisons, `? :` |
 | `MF.Anchor` | Anchor points (top-left, center, bottom-right, ...) |
 | `MF.Color` | Color parsing and conversion |
 | `MF.Hook` | Safe method overriding (`alias` / `before` / `after`) |
@@ -87,8 +87,8 @@ MF.Hook.after(Scene_Map.prototype, "start", function() {
 
 ## Documentation
 
-- [Getting started](docs/getting-started.html)
-- [API reference](docs/index.html)
+- [Getting started](https://mesafer.github.io/MF_Core/getting-started.html)
+- [API reference](https://mesafer.github.io/MF_Core/)
 - [Changelog](docs/CHANGELOG.md)
 
 ## Versioning
