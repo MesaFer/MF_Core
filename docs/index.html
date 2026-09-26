@@ -10,7 +10,7 @@
 
 <nav>
     <div class="title">MF_Core</div>
-    <div class="version">v1.2.0 · RPG Maker MZ</div>
+    <div class="version">v1.2.1 · RPG Maker MZ</div>
     <div class="search">
         <input id="filter" type="search" placeholder="Search functions, options…" aria-label="Search the reference" autocomplete="off">
         <kbd>/</kbd>
@@ -1485,6 +1485,7 @@ MF.Deprecation.method(MF.Utils, "oldName", {
 </table>
 <p>New MZ hooks (all through <code>MF.Hook</code>, calling the original): <code>Game_Switches/Game_Variables.setValue</code>, <code>Game_Party.gainGold/gainItem</code>, <code>Game_Actor.changeExp</code>, <code>Game_Battler.addState/removeState</code>, <code>Game_BattlerBase.param/xparam/sparam/skillMpCost/skillTpCost</code>, <code>BattleManager.startBattle/startTurn/endTurn/endAction/endBattle/makeRewards</code>, <code>Game_Map.setup</code>, <code>Game_Player.performTransfer</code>, <code>Game_Event.start</code>, <code>Game_Message.add</code>, <code>Game_Interpreter.updateWait/clear</code>, <code>Window_Options</code>, <code>Scene_Options.maxCommands</code>, <code>Scene_Base.terminate</code>, <code>DataManager.setupNewGame</code>. Without listeners, modifiers or options they return the original results. A plugin below MF_Core that <em>replaces</em> one of these methods without calling the original disables only the matching new feature.</p>
 <p>Save files: a new key <code>MF_Core.random</code> appears in <code>contents.mf</code>. Saves are readable by 1.1.0 (unknown keys are kept as orphans), and 1.1.0 saves load in 1.2.0.</p>
+<p><strong>1.2.1</strong> adds two engine performance hooks (through <code>MF.Hook</code>, calling the original, results unchanged): <code>ColorManager.textColor</code> (cached per loaded windowskin; a plugin that <em>draws into</em> the windowskin bitmap at runtime should assign a new bitmap to <code>ColorManager._windowskin</code>) and <code>Bitmap.prototype.drawText</code> (missing <code>align</code> → <code>"start"</code>).</p>
 
 <!-- ================================================================== -->
 <h2 id="bus-events">Bus events</h2>
@@ -1536,6 +1537,10 @@ MF.Deprecation.method(MF.Utils, "oldName", {
 <!-- ================================================================== -->
 <h2 id="changelog">Changelog</h2>
 <p>The full changelog with Breaking / Deprecated markers is in <a href="CHANGELOG.md"><code>CHANGELOG.md</code></a>. Summary:</p>
+<h3>1.2.1 — 2026-09-26</h3>
+<ul>
+    <li><strong>Fixed:</strong> performance — <code>ColorManager.textColor</code> results cached per windowskin (no <code>getImageData</code> per <code>\C[n]</code>); <code>Bitmap.drawText</code> without <code>align</code> uses <code>"start"</code> instead of the invalid <code>undefined</code> (no <code>CanvasTextAlign</code> warnings). Rendering unchanged.</li>
+</ul>
 <h3>1.2.0 — 2026-09-25</h3>
 <ul>
     <li><strong>Added:</strong> <a href="#registry"><code>MF.Registry</code></a>, <a href="#services"><code>MF.Services</code></a>, <a href="#notetag"><code>MF.Notetag</code></a>, <a href="#gameevents"><code>MF.GameEvents</code></a>, <a href="#commands"><code>MF.Commands</code></a>, <a href="#options"><code>MF.Options</code></a>, <a href="#modifiers"><code>MF.Modifiers</code></a>, <a href="#random"><code>MF.Random</code></a>; <code>options.scene</code> for Ticker / Tween / Timer.</li>

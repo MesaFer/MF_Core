@@ -3,7 +3,7 @@
 //=============================================================================
 /*:
  * @target MZ
- * @plugindesc [v1.2.0] MF Core — base library for MF_* plugins.
+ * @plugindesc [v1.2.1] MF Core — base library for MF_* plugins.
  * @author MesaFer
  * @url
  *
@@ -23,7 +23,7 @@
  * @default false
  * @desc Allow executing JS code from data ("script" conditions and actions).
  *
- * @help MF_Core.js  v1.2.0
+ * @help MF_Core.js  v1.2.1
  * ============================================================================
  * Base library for the MF_* plugin family.
  * Must be placed ABOVE all other MF_* plugins in the plugin list.
@@ -104,7 +104,7 @@
     "use strict";
 
     const PLUGIN_NAME = "MF_Core";
-    const PLUGIN_VERSION = "1.2.0";
+    const PLUGIN_VERSION = "1.2.1";
 
     const MF = (window.MF = window.MF || {});
     if (MF.Core && MF.Core.VERSION) {
@@ -5634,6 +5634,37 @@
         Modifiers,
         Random
     });
+
+    //=========================================================================
+    // Engine performance fixes (no behavior change)
+    //=========================================================================
+    // 1) ColorManager.textColor(n) reads a windowskin pixel via getImageData on
+    //    every call (each \C[n], every resetTextColor). Reading back a GPU-backed
+    //    canvas stalls the GPU; with text-heavy UIs this costs several ms per
+    //    frame, more with a second WebGL context. Results are cached per
+    //    windowskin bitmap once it is loaded (a new/reloaded windowskin is a new
+    //    Bitmap object → new cache).
+    // 2) Window_Base.flushTextState calls Bitmap.drawText without "align";
+    //    `context.textAlign = undefined` is an invalid value: slow path + console
+    //    warnings. It is replaced by "start" — the canvas default the invalid
+    //    assignment used to leave in place, so rendering is identical.
+    if (window.ColorManager) {
+        const textColorCache = new WeakMap();
+        Hook.alias(ColorManager, "textColor", function(orig, n) {
+            const skin = this._windowskin;
+            if (!skin || !skin.isReady || !skin.isReady()) return orig(n);
+            let cache = textColorCache.get(skin);
+            if (!cache) textColorCache.set(skin, (cache = new Map()));
+            let color = cache.get(n);
+            if (color === undefined) cache.set(n, (color = orig(n)));
+            return color;
+        }, PLUGIN_NAME);
+    }
+    if (window.Bitmap) {
+        Hook.alias(Bitmap.prototype, "drawText", function(orig, text, x, y, maxWidth, lineHeight, align) {
+            return orig(text, x, y, maxWidth, lineHeight, align || "start");
+        }, PLUGIN_NAME);
+    }
 
     Core.register(PLUGIN_NAME, PLUGIN_VERSION);
 })();

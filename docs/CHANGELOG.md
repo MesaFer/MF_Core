@@ -63,6 +63,15 @@ _Nothing yet._
 
 ---
 
+## [1.2.1] — 2026-09-26
+
+### Fixed
+- Performance: `ColorManager.textColor(n)` read a windowskin pixel through `getImageData` on every call (each `\C[n]`, every `resetTextColor`) — a GPU read-back that stalls rendering in text-heavy UIs (≈26 reads per frame in the SimpleVisual demo; worse with a second WebGL context such as MF_3D). Colors are now cached per loaded windowskin bitmap; a replaced windowskin gets a new cache. Returned values are unchanged.
+- Performance / console spam: `Window_Base.flushTextState` calls `Bitmap.drawText` without `align`, which assigned the invalid `context.textAlign = undefined` (slow path + `CanvasTextAlign` warnings). A missing `align` is now passed as `"start"` — the value the canvas kept before, so text renders identically.
+- Measured (SimpleVisual demo, 6× CPU throttling): 2D map 27 → 49 fps; 4× throttling 52 → 60 fps.
+
+---
+
 ## [1.2.0] — 2026-09-25
 
 ### Added

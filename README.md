@@ -4,7 +4,7 @@ Base library for the **MF_\*** plugin family for **RPG Maker MZ**.
 
 MF_Core provides a shared foundation — plugin registration with version checks, safe hooks, events, data files, save/config storage, localization, text codes, input, tweens, layout and more — so that MF_* plugins stay small and compatible with each other.
 
-- **Version:** 1.2.0 (backward compatible with 1.0.0 / 1.1.0 — see the [changelog](docs/CHANGELOG.md))
+- **Version:** 1.2.1 (backward compatible with 1.0.0 / 1.1.0 / 1.2.0 — see the [changelog](docs/CHANGELOG.md))
 - **Engine:** RPG Maker MZ
 - **Author:** MesaFer
 - **itch.io:** https://mesafer.itch.io/rpgmaker-mz-mf-core-plugin
